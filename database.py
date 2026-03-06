@@ -71,5 +71,25 @@ def init_db(database_url: str):
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialised: %s", database_url)
 
+    # ── Additive migrations (safe to re-run on every startup) ──
+    _run_migrations(engine)
+
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
     return engine, SessionLocal
+
+
+def _run_migrations(engine) -> None:
+    """Apply lightweight additive schema migrations that create_all won't handle."""
+    with engine.connect() as conn:
+        # Add 'language' column to users table (introduced for i18n support)
+        try:
+            conn.execute(
+                __import__("sqlalchemy").text(
+                    "ALTER TABLE users ADD COLUMN language VARCHAR(8) NOT NULL DEFAULT 'en'"
+                )
+            )
+            conn.commit()
+            logger.info("Migration applied: users.language column added")
+        except Exception:
+            # Column already exists — ignore
+            pass

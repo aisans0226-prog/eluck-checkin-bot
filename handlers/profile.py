@@ -17,6 +17,8 @@ from utils.helpers import (
     safe_edit_or_reply,
     rate_limited,
 )
+from utils.i18n import t
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -38,33 +40,35 @@ async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if not user:
             await safe_edit_or_reply(
                 update,
-                "⚠️ Profile not found. Please send /start first.",
-                reply_markup=back_to_menu_keyboard(),
+                t("profile_not_found", "en"),
+                reply_markup=back_to_menu_keyboard("en"),
             )
             return
 
+        lang = user.language or "en"
         ref_stats = get_referral_stats(db, tg_user.id)
         streak_bar = format_streak_bar(user.streak)
+        day_word = t("day", lang) if user.streak == 1 else t("days", lang)
 
         game_id_line = (
-            f"🎮 Game ID: <code>{user.game_id}</code>"
+            f"{t('game_id_label', lang)}: <code>{user.game_id}</code>"
             if user.game_id
-            else "🎮 Game ID: <i>Not set — click Check-in to register</i>"
+            else f"{t('game_id_label', lang)}: {t('game_id_notset', lang)}"
         )
 
         text = (
-            f"👤 <b>USER PROFILE</b>\n"
+            f"{t('profile_header', lang)}\n"
             f"{'─' * 28}\n"
-            f"Telegram:  {user.display_name}\n"
+            f"{t('telegram_label', lang)}:  {user.display_name}\n"
             f"{game_id_line}\n\n"
-            f"🔥 Current Streak:   <b>{user.streak} day{'s' if user.streak != 1 else ''}</b>  {streak_bar}\n"
-            f"📅 Total Check-ins:  <b>{user.total_checkin}</b>\n"
-            f"💰 Points:           <b>{format_points(user.points)}</b>\n\n"
-            f"👥 Referrals:        <b>{ref_stats['count']}</b>\n"
-            f"🎁 Referral Points:  <b>{format_points(ref_stats['total_points_earned'])}</b>"
+            f"{t('streak_label', lang)}:   <b>{user.streak} {day_word}</b>  {streak_bar}\n"
+            f"{t('total_checkins_label', lang)}:  <b>{user.total_checkin}</b>\n"
+            f"{t('points_label', lang)}:           <b>{format_points(user.points)}</b>\n\n"
+            f"{t('referrals_label', lang)}:        <b>{ref_stats['count']}</b>\n"
+            f"{t('referral_points_label', lang)}:  <b>{format_points(ref_stats['total_points_earned'])}</b>"
         )
 
-        await safe_edit_or_reply(update, text, reply_markup=profile_keyboard())
+        await safe_edit_or_reply(update, text, reply_markup=profile_keyboard(lang))
 
     finally:
         db.close()
@@ -84,24 +88,24 @@ async def referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     try:
         user: User | None = db.query(User).filter(User.telegram_id == tg_user.id).first()
         if not user:
-            await safe_edit_or_reply(update, "Please send /start first.")
+            await safe_edit_or_reply(update, t("start_first", "en"))
             return
 
+        lang = user.language or "en"
         ref_stats = get_referral_stats(db, tg_user.id)
         link = build_referral_link(tg_user.id)
+        reward = context.bot_data.get("referral_reward", config.REFERRAL_REWARD)
 
         text = (
-            f"🔗 <b>Your Referral Link</b>\n"
+            f"{t('referral_header', lang)}\n"
             f"{'─' * 28}\n\n"
             f"<code>{link}</code>\n\n"
-            f"👥 Total Referrals: <b>{ref_stats['count']}</b>\n"
-            f"💰 Points Earned:   <b>{format_points(ref_stats['total_points_earned'])}</b>\n\n"
-            f"📌 <i>Share this link and earn "
-            f"<b>{context.bot_data.get('referral_reward', 20)} points</b> "
-            f"for every friend who joins!</i>"
+            f"{t('total_referrals_label', lang)}: <b>{ref_stats['count']}</b>\n"
+            f"{t('points_earned_label', lang)}:   <b>{format_points(ref_stats['total_points_earned'])}</b>\n\n"
+            f"{t('referral_tip', lang, reward=reward)}"
         )
 
-        await safe_edit_or_reply(update, text, reply_markup=back_to_menu_keyboard())
+        await safe_edit_or_reply(update, text, reply_markup=back_to_menu_keyboard(lang))
 
     finally:
         db.close()

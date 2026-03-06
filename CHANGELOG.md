@@ -1,5 +1,23 @@
 # Eluck Check-in Bot — Changelog & Session Notes
 
+## Session: 2026-03-07 — i18n, Multi-timezone Dashboard
+
+### Summary
+Added multilingual support to both the Telegram bot and the admin dashboard, plus multi-timezone clock on the dashboard.
+
+### Telegram Bot
+- **i18n module** (`utils/i18n.py`) — Centralized EN + ES (Mexican Spanish) translations; `detect_lang()` reads `tg_user.language_code` → auto-selects language on `/start`
+- **User.language column** — Added to DB via safe additive migration in `database.py`; defaults to `"en"`
+- **All handlers updated** — `start.py`, `checkin.py`, `profile.py`, `menu.py` return messages in the user's detected language
+- **Keyboard labels** (`utils/keyboard.py`) — All inline button labels translated per-user language
+- **Language logic** — `es*` language codes (es, es-MX, es-419…) → Spanish; all others → English
+
+### Admin Dashboard (`dashboard/templates/base.html`)
+- **Language switcher** — Topbar buttons EN / VI / ZH; stored in `localStorage`; translates all sidebar nav labels and status badges via `data-i18n` attributes
+- **Multi-timezone clock** — Dropdown selector: UTC / Mexico City (MX) / Beijing (BJT) / Vietnam (ICT); uses `Intl.DateTimeFormat` (no extra library); selection persisted in `localStorage`
+
+---
+
 ## Session: 2026-03-06 — Full Build + Dashboard
 
 ### Summary

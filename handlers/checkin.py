@@ -15,12 +15,20 @@ from models.user import User
 from services.checkin_service import get_or_create_user, perform_checkin
 from utils.keyboard import checkin_success_keyboard, back_to_menu_keyboard
 from utils.helpers import format_points, format_streak_bar, rate_limited, safe_edit_or_reply
+from utils.i18n import t
 import config
 
 logger = logging.getLogger(__name__)
 
 # ConversationHandler states
 WAITING_GAME_ID = 1
+
+
+def _get_lang(db, telegram_id: int) -> str:
+    """Fetch stored language for a Telegram user."""
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    return user.language if user else "en"
+
 
 # ─────────────────────────────────────────────────────────────
 # Entry point — triggered when user clicks ✅ Daily Check-in
@@ -41,6 +49,8 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         user = get_or_create_user(db, tg_user.id, tg_user.username, tg_user.first_name)
         db.commit()
 
+        lang = user.language or "en"
+
         if update.callback_query:
             await update.callback_query.answer()
 
@@ -48,12 +58,7 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         if not user.game_id:
             await safe_edit_or_reply(
                 update,
-                text=(
-                    "🎮 <b>Game ID Required</b>\n\n"
-                    "Please enter your <b>Game ID</b> to activate check-in.\n"
-                    "<i>Example: <code>12345678</code></i>\n\n"
-                    "⚠️ You only need to do this once!"
-                ),
+                text=t("game_id_required", lang),
                 reply_markup=None,
                 parse_mode="HTML",
             )
@@ -66,17 +71,12 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         if result.already_checked_in:
             await safe_edit_or_reply(
                 update,
-                text=(
-                    "⚠️ <b>Already Checked In</b>\n\n"
-                    "You already checked in today!\n"
-                    "Come back tomorrow 😊\n\n"
-                    f"🔥 Current Streak: <b>{user.streak} days</b>"
-                ),
-                reply_markup=back_to_menu_keyboard(),
+                text=t("already_checkedin", lang, streak=user.streak),
+                reply_markup=back_to_menu_keyboard(lang),
                 parse_mode="HTML",
             )
         else:
-            await _send_checkin_success(update, user, result)
+            await _send_checkin_success(update, user, result, lang)
 
     except Exception as exc:
         db.rollback()
@@ -96,12 +96,14 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     tg_user = update.effective_user
     text = (update.message.text or "").strip()
 
+    db = context.bot_data["db_session"]()
+    lang = _get_lang(db, tg_user.id)
+    db.close()
+
     # Validate: numeric, 4–20 chars
     if not re.match(r"^\d{4,20}$", text):
         await update.message.reply_text(
-            "❌ <b>Invalid Game ID</b>\n\n"
-            "Please enter a valid numeric Game ID (4–20 digits).\n"
-            "<i>Example: <code>12345678</code></i>",
+            t("invalid_game_id", lang),
             parse_mode="HTML",
         )
         return WAITING_GAME_ID  # stay in state
@@ -111,8 +113,10 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     try:
         user = db.query(User).filter(User.telegram_id == tg_user.id).first()
         if not user:
-            await update.message.reply_text("⚠️ Please send /start first.")
+            await update.message.reply_text(t("start_first", lang))
             return ConversationHandler.END
+
+        lang = user.language or "en"
 
         # Save the game ID
         user.game_id = text
@@ -122,12 +126,12 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         result = perform_checkin(db, user)
         db.commit()
 
-        await _send_checkin_success(update, user, result, new_registration=True)
+        await _send_checkin_success(update, user, result, lang, new_registration=True)
 
     except Exception as exc:
         db.rollback()
         logger.error("receive_game_id error: %s", exc, exc_info=True)
-        await update.message.reply_text("⚠️ An error occurred. Please try again.")
+        await update.message.reply_text(t("error_generic", "en"))
     finally:
         db.close()
 
@@ -147,17 +151,18 @@ async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         if update.callback_query:
             await update.callback_query.answer()
 
+        lang = _get_lang(db, update.effective_user.id)
         top_users = get_leaderboard(db, limit=config.LEADERBOARD_SIZE)
 
         if not top_users:
             await safe_edit_or_reply(
                 update,
-                "🏆 No leaderboard data yet. Be the first to check in!",
-                reply_markup=back_to_menu_keyboard(),
+                t("leaderboard_empty", lang),
+                reply_markup=back_to_menu_keyboard(lang),
             )
             return
 
-        lines = ["🏆 <b>TOP CHECK-IN USERS</b>\n"]
+        lines = [t("leaderboard_header", lang) + "\n"]
         for i, u in enumerate(top_users, start=1):
             name = u.display_name
             lines.append(
@@ -168,7 +173,7 @@ async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
             )
 
         text = "\n".join(lines)
-        await safe_edit_or_reply(update, text, reply_markup=back_to_menu_keyboard())
+        await safe_edit_or_reply(update, text, reply_markup=back_to_menu_keyboard(lang))
 
     finally:
         db.close()
@@ -177,26 +182,30 @@ async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 # ─────────────────────────────────────────────────────────────
 # Internal helper — build and send success message
 # ─────────────────────────────────────────────────────────────
-async def _send_checkin_success(update, user, result, new_registration: bool = False) -> None:
+async def _send_checkin_success(
+    update, user, result, lang: str, new_registration: bool = False
+) -> None:
     streak_bar = format_streak_bar(result.streak)
+    day_word = t("day", lang) if result.streak == 1 else t("days", lang)
 
     bonus_line = ""
     if result.streak_bonus > 0:
-        bonus_line = (
-            f"\n🎉 <b>Milestone Bonus!</b> You reached a "
-            f"<b>{result.milestone_reached}-day streak!</b>\n"
-            f"   💰 Bonus: <b>+{format_points(result.streak_bonus)} pts</b>"
+        bonus_line = t(
+            "milestone_bonus",
+            lang,
+            streak=result.milestone_reached,
+            bonus=format_points(result.streak_bonus),
         )
 
-    reg_line = "\n✨ <i>Game ID registered successfully!</i>" if new_registration else ""
+    reg_line = t("game_id_registered", lang) if new_registration else ""
 
     text = (
-        f"✅ <b>Check-in Successful!</b>{reg_line}\n\n"
-        f"🔥 Streak: <b>{result.streak} day{'s' if result.streak != 1 else ''}</b>  {streak_bar}\n"
-        f"📅 Total check-ins: <b>{result.total_checkins}</b>\n"
-        f"💰 Points earned: <b>+{result.points_earned} pts</b>"
+        f"{t('checkin_success_title', lang)}{reg_line}\n\n"
+        f"{t('streak_line', lang, streak=result.streak, days=day_word, bar=streak_bar)}\n"
+        f"{t('total_checkins_line', lang, total=result.total_checkins)}\n"
+        f"{t('points_earned_line', lang, pts=result.points_earned)}"
         f"{bonus_line}\n\n"
-        f"🎮 Game ID: <code>{user.game_id}</code>"
+        f"{t('game_id_line', lang, game_id=user.game_id)}"
     )
 
-    await safe_edit_or_reply(update, text, reply_markup=checkin_success_keyboard())
+    await safe_edit_or_reply(update, text, reply_markup=checkin_success_keyboard(lang))
