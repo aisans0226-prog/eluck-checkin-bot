@@ -1,0 +1,50 @@
+<!-- Partial: task add form fields (included in tasks.html) -->
+<div class="mb-2">
+  <label class="form-label form-label-sm">Task Key (unique slug) *</label>
+  <input type="text" name="task_key" class="form-control form-control-sm"
+    placeholder="e.g. watch_video" required pattern="[a-z0-9_]+">
+  <div style="font-size:.7rem;color:#64748b;margin-top:2px">Lowercase letters, digits, underscores only</div>
+</div>
+<div class="mb-2">
+  <label class="form-label form-label-sm">Name *</label>
+  <input type="text" name="name" class="form-control form-control-sm"
+    placeholder="e.g. Watch Introduction Video" required>
+</div>
+<div class="mb-2">
+  <label class="form-label form-label-sm">Description</label>
+  <textarea name="description" class="form-control form-control-sm" rows="2"
+    placeholder="Short description shown to users"></textarea>
+</div>
+<div class="row g-2 mb-2">
+  <div class="col-6">
+    <label class="form-label form-label-sm">Reward Points *</label>
+    <input type="number" name="reward_points" class="form-control form-control-sm"
+      value="50" min="1" required>
+  </div>
+  <div class="col-6">
+    <label class="form-label form-label-sm">Task Type</label>
+    <select name="task_type" class="form-select form-select-sm">
+      <option value="manual">manual (user marks done)</option>
+      <option value="visit_url">visit_url</option>
+      <option value="join_channel">join_channel</option>
+      <option value="referral">referral</option>
+      <option value="streak">streak</option>
+    </select>
+  </div>
+</div>
+<div class="mb-2">
+  <label class="form-label form-label-sm">URL (optional)</label>
+  <input type="url" name="url" class="form-control form-control-sm" placeholder="https://...">
+</div>
+<div class="row g-2 mb-2">
+  <div class="col-6">
+    <label class="form-label form-label-sm">Required Count <span class="text-muted">(for referral/streak)</span></label>
+    <input type="number" name="required_count" class="form-control form-control-sm" value="1" min="1">
+  </div>
+  <div class="col-6 d-flex align-items-end">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="is_active" id="isActiveNew" checked>
+      <label class="form-check-label" for="isActiveNew" style="font-size:.82rem">Active immediately</label>
+    </div>
+  </div>
+</div>

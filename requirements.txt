@@ -1,0 +1,8 @@
+python-telegram-bot>=21.0
+SQLAlchemy>=2.0.36
+pandas>=2.2.3
+APScheduler==3.10.4
+python-dotenv==1.0.0
+aiofiles==23.2.1
+pytz==2024.1
+flask>=3.0.0

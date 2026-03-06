@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Admin Dashboard{% endblock %} — Eluck Check-in Bot</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    :root {
+      --sidebar-width: 240px;
+      --primary: #6f42c1;
+      --accent:  #fd7e14;
+    }
+    body { background: #0f0f14; color: #e2e8f0; font-size: 0.92rem; }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    #sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh;
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, #1a1a2e 0%, #12122a 100%);
+      border-right: 1px solid #2a2a4a;
+      z-index: 1000; display: flex; flex-direction: column;
+    }
+    #sidebar .brand {
+      padding: 1.25rem 1rem 1rem;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    #sidebar .brand .bot-name {
+      font-size: 1rem; font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    #sidebar .brand .bot-user {
+      font-size: 0.75rem; color: #64748b; margin-top: 2px;
+    }
+    #sidebar .nav-link {
+      color: #94a3b8; border-radius: 8px; margin: 2px 8px;
+      padding: 0.5rem 0.75rem; font-size: 0.875rem;
+      transition: all .15s;
+    }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active {
+      color: #fff;
+      background: rgba(111,66,193,0.25);
+    }
+    #sidebar .nav-link.active { color: #a78bfa; }
+    #sidebar .nav-link i { width: 20px; margin-right: 8px; }
+    .nav-section-title {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: .07em;
+      color: #475569; text-transform: uppercase;
+      padding: .75rem 1.25rem .25rem;
+    }
+    .sidebar-footer {
+      margin-top: auto; padding: 1rem;
+      border-top: 1px solid #2a2a4a; font-size: 0.75rem; color: #475569;
+    }
+
+    /* ── Main content ────────────────────────────────────── */
+    #main { margin-left: var(--sidebar-width); min-height: 100vh; }
+    #topbar {
+      position: sticky; top: 0; z-index: 900;
+      background: rgba(15,15,20,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #1e1e3a;
+      padding: .625rem 1.5rem;
+    }
+    .page-content { padding: 1.5rem; }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .stat-card {
+      background: linear-gradient(135deg,#1a1a2e,#1e1e38);
+      border: 1px solid #2a2a4a; border-radius: 12px; padding: 1.25rem;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(111,66,193,.2); }
+    .stat-card .stat-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; margin-bottom: .75rem;
+    }
+    .stat-card .stat-value { font-size: 1.75rem; font-weight: 700; color: #f1f5f9; }
+    .stat-card .stat-label { font-size: .75rem; color: #64748b; margin-top: 2px; }
+    .stat-card .stat-change { font-size: .75rem; margin-top: .35rem; }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    .table { --bs-table-bg: transparent; }
+    .table th { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom-color: #2a2a4a; }
+    .table td { font-size: .85rem; vertical-align: middle; border-bottom-color: #1e1e3a; }
+    .table tr:hover td { background: rgba(111,66,193,.07); }
+
+    /* ── Glass panels ────────────────────────────────────── */
+    .glass { background: #16162a; border: 1px solid #2a2a4a; border-radius: 12px; }
+
+    /* ── Badges ──────────────────────────────────────────── */
+    .badge-active   { background: rgba(34,197,94,.15);  color: #4ade80; }
+    .badge-inactive { background: rgba(239,68,68,.15);  color: #f87171; }
+    .badge-streak   { background: rgba(251,146,60,.15); color: #fb923c; }
+
+    /* ── Forms ───────────────────────────────────────────── */
+    .form-control, .form-select {
+      background: #1e1e38; border-color: #2a2a4a; color: #e2e8f0;
+      font-size: .875rem;
+    }
+    .form-control:focus, .form-select:focus {
+      background: #1e1e38; border-color: #6f42c1; color: #e2e8f0;
+      box-shadow: 0 0 0 .2rem rgba(111,66,193,.25);
+    }
+    .btn-primary   { background: #6f42c1; border-color: #6f42c1; }
+    .btn-primary:hover { background: #5a32a3; }
+
+    /* ── Misc ────────────────────────────────────────────── */
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg,#6f42c1,#e91e8c);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 600; color: #fff;
+    }
+    .text-purple { color: #a78bfa !important; }
+    .bg-purple-soft { background: rgba(111,66,193,.15) !important; }
+    .chart-container { position: relative; height: 220px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════ -->
+<nav id="sidebar">
+  <div class="brand">
+    <div class="d-flex align-items-center gap-2">
+      <span style="font-size:1.5rem">🎰</span>
+      <div>
+        <div class="bot-name">Eluck Check-in</div>
+        <div class="bot-user">@Eluck_checkin_bot</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pt-2 flex-grow-1 overflow-auto">
+    <div class="nav-section-title">Overview</div>
+    <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i> Dashboard
+    </a>
+
+    <div class="nav-section-title">Users</div>
+    <a href="/users" class="nav-link {% if '/users' in request.path %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> All Users
+    </a>
+    <a href="/users?filter=active" class="nav-link">
+      <i class="bi bi-person-check-fill"></i> Active Users
+    </a>
+    <a href="/users/export" class="nav-link">
+      <i class="bi bi-download"></i> Export CSV
+    </a>
+
+    <div class="nav-section-title">Configuration</div>
+    <a href="/tasks" class="nav-link {% if '/tasks' in request.path %}active{% endif %}">
+      <i class="bi bi-list-check"></i> Activities / Tasks
+    </a>
+    <a href="/rewards" class="nav-link {% if '/rewards' in request.path %}active{% endif %}">
+      <i class="bi bi-coin"></i> Rewards Config
+    </a>
+
+    <div class="nav-section-title">Communication</div>
+    <a href="/broadcast" class="nav-link {% if '/broadcast' in request.path %}active{% endif %}">
+      <i class="bi bi-megaphone-fill"></i> Broadcast
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-circle me-1"></i>{{ session.get('username','admin') }}</span>
+      <a href="/logout" class="text-danger text-decoration-none" title="Logout">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════ MAIN ══════════════════════════════════ -->
+<main id="main">
+  <!-- Topbar -->
+  <div id="topbar" class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted" style="font-size:.75rem">
+        <i class="bi bi-chevron-right me-1"></i>
+        {% block breadcrumb %}Dashboard{% endblock %}
+      </span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span id="clock" class="text-muted font-monospace" style="font-size:.75rem"></span>
+      <span class="badge bg-success bg-opacity-25 text-success" style="font-size:.7rem">
+        <i class="bi bi-circle-fill me-1" style="font-size:.4rem"></i>Bot Online
+      </span>
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  <div class="px-4 pt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'danger' if cat == 'danger' else ('warning' if cat == 'warning' else 'success') }} alert-dismissible fade show py-2" role="alert" style="font-size:.85rem">
+          {{ msg }}
+          <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <!-- Page content -->
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+  // Live clock
+  const clockEl = document.getElementById('clock');
+  function tick() {
+    const now = new Date();
+    clockEl.textContent = now.toUTCString().slice(17,25) + ' UTC';
+  }
+  tick(); setInterval(tick, 1000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

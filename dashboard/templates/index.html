@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block breadcrumb %}Dashboard / Overview{% endblock %}
+
+{% block content %}
+<!-- ── Stat Cards ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(111,66,193,.2)">
+        <span>👥</span>
+      </div>
+      <div class="stat-value">{{ total_users | int | format_number if total_users else total_users }}</div>
+      <div class="stat-label">Total Users</div>
+      <div class="stat-change text-success"><i class="bi bi-person-plus me-1"></i>{{ users_with_game }} with Game ID</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(34,197,94,.2)">
+        <span>✅</span>
+      </div>
+      <div class="stat-value">{{ checkins_today }}</div>
+      <div class="stat-label">Check-ins Today</div>
+      <div class="stat-change text-muted"><i class="bi bi-calendar me-1"></i>{{ total_checkins }} all-time</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(251,146,60,.2)">
+        <span>🔥</span>
+      </div>
+      <div class="stat-value">{{ active_7d }}</div>
+      <div class="stat-label">Active (7 days)</div>
+      <div class="stat-change text-warning">
+        {% if total_users > 0 %}
+          {{ ((active_7d / total_users) * 100) | round(1) }}% retention
+        {% else %}—{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(251,191,36,.2)">
+        <span>💰</span>
+      </div>
+      <div class="stat-value">{{ total_points }}</div>
+      <div class="stat-label">Points Distributed</div>
+      <div class="stat-change text-muted"><i class="bi bi-trophy me-1"></i>All time</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="glass p-3 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-semibold">📅 Daily Check-ins (Last 30 days)</h6>
+        <span class="badge bg-purple-soft text-purple">{{ total_checkins }} total</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="checkinsChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="glass p-3 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-semibold">👤 New Users (Last 30 days)</h6>
+      </div>
+      <div class="chart-container">
+        <canvas id="newUsersChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Leaderboard + Recent ─────────────────────────── -->
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="glass p-3 h-100">
+      <h6 class="fw-semibold mb-3">🏆 Top 5 Users</h6>
+      <table class="table table-borderless mb-0">
+        <thead>
+          <tr><th>#</th><th>User</th><th>Days</th><th>Streak</th><th>Pts</th></tr>
+        </thead>
+        <tbody>
+          {% for u in top5 %}
+          <tr>
+            <td>
+              {% if loop.index == 1 %}🥇
+              {% elif loop.index == 2 %}🥈
+              {% elif loop.index == 3 %}🥉
+              {% else %}<span class="text-muted">{{ loop.index }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/users/{{ u.telegram_id }}" class="text-decoration-none text-purple">
+                {{ u.display_name }}
+              </a>
+              {% if u.game_id %}<br><span class="text-muted" style="font-size:.7rem">{{ u.game_id }}</span>{% endif %}
+            </td>
+            <td><strong>{{ u.total_checkin }}</strong></td>
+            <td><span class="badge badge-streak">🔥{{ u.streak }}</span></td>
+            <td>{{ "{:,}".format(u.points) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-3">No data yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a href="/users" class="btn btn-sm btn-outline-secondary w-100 mt-2">View All Users →</a>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="glass p-3 h-100">
+      <h6 class="fw-semibold mb-3">⏱ Recent Check-ins</h6>
+      <div style="overflow-x:auto">
+        <table class="table table-borderless mb-0">
+          <thead>
+            <tr><th>User</th><th>Game ID</th><th>Date</th><th>Streak</th><th>Pts</th></tr>
+          </thead>
+          <tbody>
+            {% for r in recent %}
+            <tr>
+              <td class="text-purple">{{ r.username }}</td>
+              <td class="font-monospace text-muted" style="font-size:.75rem">{{ r.game_id }}</td>
+              <td class="text-muted">{{ r.date }}</td>
+              <td><span class="badge badge-streak">🔥{{ r.streak }}</span></td>
+              <td class="text-success">+{{ r.points }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No check-ins yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+  },
+};
+
+// Check-ins chart
+new Chart(document.getElementById('checkinsChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_dates | safe }},
+    datasets: [{
+      data: {{ chart_counts | safe }},
+      borderColor: '#6f42c1',
+      backgroundColor: 'rgba(111,66,193,.15)',
+      fill: true, tension: .4,
+      pointBackgroundColor: '#a78bfa', pointRadius: 3,
+    }],
+  },
+  options: { ...chartDefaults },
+});
+
+// New users chart
+new Chart(document.getElementById('newUsersChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ nu_dates | safe }},
+    datasets: [{
+      data: {{ nu_counts | safe }},
+      backgroundColor: 'rgba(244,114,182,.4)',
+      borderColor: '#f472b6', borderWidth: 1, borderRadius: 4,
+    }],
+  },
+  options: { ...chartDefaults },
+});
+</script>
+{% endblock %}

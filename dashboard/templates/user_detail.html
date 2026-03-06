@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}User — {{ user.display_name }}{% endblock %}
+{% block breadcrumb %}Dashboard / <a href="/users" class="text-decoration-none text-purple">Users</a> / {{ user.display_name }}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- LEFT: Profile card -->
+  <div class="col-lg-4">
+    <div class="glass p-4 mb-3">
+      <div class="text-center mb-3">
+        <div class="avatar mx-auto mb-2" style="width:56px;height:56px;font-size:1.4rem">
+          {{ (user.first_name or user.username or 'U')[0].upper() }}
+        </div>
+        <div class="fw-bold">{{ user.display_name }}</div>
+        <div class="text-muted font-monospace" style="font-size:.75rem">ID: {{ user.telegram_id }}</div>
+      </div>
+
+      <hr class="border-secondary my-3" />
+
+      <div class="row g-2 text-center mb-3">
+        <div class="col-4">
+          <div class="fw-bold text-warning">🔥{{ user.streak }}</div>
+          <div style="font-size:.65rem;color:#64748b">STREAK</div>
+        </div>
+        <div class="col-4">
+          <div class="fw-bold text-success">{{ user.total_checkin }}</div>
+          <div style="font-size:.65rem;color:#64748b">CHECK-INS</div>
+        </div>
+        <div class="col-4">
+          <div class="fw-bold text-purple">{{ "{:,}".format(user.points) }}</div>
+          <div style="font-size:.65rem;color:#64748b">POINTS</div>
+        </div>
+      </div>
+
+      <dl class="mb-0" style="font-size:.82rem">
+        <dt class="text-muted mb-1">Game ID</dt>
+        <dd class="mb-2">
+          {% if user.game_id %}<code class="text-purple">{{ user.game_id }}</code>
+          {% else %}<span class="text-muted">Not set</span>{% endif %}
+        </dd>
+        <dt class="text-muted mb-1">Registered</dt>
+        <dd class="mb-2">{{ user.register_date.strftime('%Y-%m-%d') }}</dd>
+        <dt class="text-muted mb-1">Last Check-in</dt>
+        <dd class="mb-2">{{ user.last_checkin or 'Never' }}</dd>
+        <dt class="text-muted mb-1">Referrals Made</dt>
+        <dd class="mb-0">{{ referrals | length }}</dd>
+      </dl>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="glass p-3">
+      <div class="fw-semibold mb-2" style="font-size:.82rem;color:#a78bfa">⚡ Quick Actions</div>
+
+      <!-- Edit Game ID -->
+      <form method="POST" class="mb-2">
+        <input type="hidden" name="action" value="update">
+        <div class="input-group input-group-sm">
+          <input type="text" name="game_id" class="form-control" placeholder="New Game ID"
+            value="{{ user.game_id or '' }}">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Update Game ID</div>
+      </form>
+
+      <!-- Add/subtract points -->
+      <form method="POST" class="mb-2">
+        <input type="hidden" name="action" value="add_points">
+        <div class="input-group input-group-sm">
+          <input type="number" name="delta" class="form-control" placeholder="+100 or -50">
+          <button type="submit" class="btn btn-success">Apply</button>
+        </div>
+        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Add / subtract points (negative = subtract)</div>
+      </form>
+
+      <!-- Set streak -->
+      <form method="POST" class="mb-2">
+        <input type="hidden" name="action" value="set_streak">
+        <div class="input-group input-group-sm">
+          <input type="number" name="streak" class="form-control" min="0" placeholder="New streak value"
+            value="{{ user.streak }}">
+          <button type="submit" class="btn btn-warning text-dark">Set</button>
+        </div>
+        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Manually set streak</div>
+      </form>
+
+      <!-- Danger actions -->
+      <form method="POST" class="d-flex gap-1 mt-3" onsubmit="return confirm('Are you sure?')">
+        <input type="hidden" name="action" value="reset_streak">
+        <button type="submit" class="btn btn-sm btn-outline-warning flex-fill">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: History + Referrals -->
+  <div class="col-lg-8">
+    <!-- Referrals table -->
+    {% if referrals %}
+    <div class="glass p-3 mb-3">
+      <h6 class="fw-semibold mb-3">🔗 Referrals Made ({{ referrals | length }})</h6>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Referred User</th><th>Game ID</th><th>Date</th><th>Pts Earned</th></tr></thead>
+        <tbody>
+          {% for ref, ref_user in referrals %}
+          <tr>
+            <td><a href="/users/{{ ref_user.telegram_id }}" class="text-purple text-decoration-none">{{ ref_user.display_name }}</a></td>
+            <td class="text-muted font-monospace" style="font-size:.75rem">{{ ref_user.game_id or '—' }}</td>
+            <td class="text-muted">{{ ref.created_at.strftime('%Y-%m-%d') }}</td>
+            <td class="text-success">+{{ ref.points_awarded }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Check-in history -->
+    <div class="glass p-3">
+      <h6 class="fw-semibold mb-3">📅 Check-in History (Last 30)</h6>
+      {% if history %}
+      <div style="overflow-x:auto">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Date</th><th>Streak</th><th>Points Earned</th></tr></thead>
+          <tbody>
+            {% for h in history %}
+            <tr>
+              <td class="font-monospace text-muted">{{ h.checkin_date }}</td>
+              <td><span class="badge badge-streak">🔥{{ h.streak_at_checkin }}</span></td>
+              <td class="text-success">+{{ h.points_earned }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted text-center py-3">No check-in history yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Reward Configuration{% endblock %}
+{% block breadcrumb %}Dashboard / Reward Configuration{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">💰 Reward Configuration</h5>
+  <span class="text-muted" style="font-size:.78rem">
+    <i class="bi bi-info-circle me-1"></i>Changes apply to new check-ins immediately
+  </span>
+</div>
+
+<form method="POST" action="/rewards">
+  <div class="row g-3">
+
+    <!-- Basic rewards -->
+    <div class="col-lg-6">
+      <div class="glass p-4 h-100">
+        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-coin me-2"></i>Base Rewards</h6>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            ✅ Points per Check-in
+            <span class="badge bg-purple-soft text-purple ms-2">{{ cfg.POINTS_PER_CHECKIN }} pts</span>
+          </label>
+          <input type="range" class="form-range mb-1" name="POINTS_PER_CHECKIN"
+            id="rngCheckin" min="1" max="100" value="{{ cfg.POINTS_PER_CHECKIN }}"
+            oninput="document.getElementById('valCheckin').textContent=this.value">
+          <div class="d-flex justify-content-between">
+            <span style="font-size:.7rem;color:#64748b">1</span>
+            <strong id="valCheckin" class="text-yellow-400" style="color:#fbbf24">{{ cfg.POINTS_PER_CHECKIN }}</strong>
+            <span style="font-size:.7rem;color:#64748b">100</span>
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:2px">Points earned each time a user checks in</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            🔗 Referral Reward
+            <span class="badge bg-purple-soft text-purple ms-2">{{ cfg.REFERRAL_REWARD }} pts</span>
+          </label>
+          <input type="range" class="form-range mb-1" name="REFERRAL_REWARD"
+            id="rngReferral" min="0" max="500" value="{{ cfg.REFERRAL_REWARD }}"
+            oninput="document.getElementById('valReferral').textContent=this.value">
+          <div class="d-flex justify-content-between">
+            <span style="font-size:.7rem;color:#64748b">0</span>
+            <strong id="valReferral" style="color:#fbbf24">{{ cfg.REFERRAL_REWARD }}</strong>
+            <span style="font-size:.7rem;color:#64748b">500</span>
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:2px">Points awarded to referrer per new user joined</div>
+        </div>
+
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:.78rem">🏆 Leaderboard Size</label>
+            <input type="number" name="LEADERBOARD_SIZE" class="form-control form-control-sm"
+              value="{{ cfg.LEADERBOARD_SIZE }}" min="5" max="100">
+          </div>
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:.78rem">⏰ Reminder Hour (UTC)</label>
+            <input type="number" name="STREAK_REMINDER_HOUR" class="form-control form-control-sm"
+              value="{{ cfg.STREAK_REMINDER_HOUR }}" min="0" max="23">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streak milestones -->
+    <div class="col-lg-6">
+      <div class="glass p-4 h-100">
+        <h6 class="text-orange fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-fire me-2"></i>Streak Milestone Bonuses</h6>
+
+        {% set milestones = [
+          ('STREAK_7_REWARD',   '7',  '🔥 7-Day Streak',   cfg.STREAK_7_REWARD,   500),
+          ('STREAK_30_REWARD',  '30', '🔥 30-Day Streak',  cfg.STREAK_30_REWARD,  2000),
+          ('STREAK_100_REWARD', '100','🔥 100-Day Streak', cfg.STREAK_100_REWARD, 5000),
+          ('STREAK_365_REWARD', '365','🔥 365-Day Streak', cfg.STREAK_365_REWARD, 20000),
+        ] %}
+
+        {% for key, days, label, val, maxval in milestones %}
+        <div class="mb-3 p-3 rounded" style="background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.15)">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="fw-semibold mb-0" style="font-size:.85rem">{{ label }}</label>
+            <strong style="color:#fb923c">+<span id="val{{ days }}">{{ val }}</span> pts</strong>
+          </div>
+          <input type="range" class="form-range" name="{{ key }}"
+            id="rng{{ days }}" min="0" max="{{ maxval }}" step="10" value="{{ val }}"
+            oninput="document.getElementById('val{{ days }}').textContent=this.value">
+          <div class="d-flex justify-content-between">
+            <span style="font-size:.65rem;color:#64748b">0</span>
+            <span style="font-size:.65rem;color:#64748b">{{ maxval }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Preview card -->
+    <div class="col-12">
+      <div class="glass p-3" style="border-color:rgba(111,66,193,.3)">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h6 class="text-purple mb-1">👁 Reward Preview</h6>
+            <p class="text-muted mb-0" style="font-size:.82rem">
+              User checks in daily: earns <strong id="previewDaily" class="text-success">{{ cfg.POINTS_PER_CHECKIN }}</strong> pts/day.
+              At 7-day streak: bonus <strong id="preview7" class="text-warning">{{ cfg.STREAK_7_REWARD }}</strong> pts.
+              Refer 1 friend: <strong id="previewRef" class="text-purple">{{ cfg.REFERRAL_REWARD }}</strong> pts.
+            </p>
+          </div>
+          <div class="col-md-4 text-end">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-floppy me-2"></i>Save Configuration
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Sync range sliders → preview
+const map = {
+  rngCheckin:  'previewDaily',
+  rngReferral: 'previewRef',
+  rng7:        'preview7',
+};
+Object.entries(map).forEach(([rng, prev]) => {
+  const el = document.getElementById(rng);
+  if (el) el.addEventListener('input', () => {
+    const pe = document.getElementById(prev);
+    if (pe) pe.textContent = el.value;
+  });
+});
+</script>
+{% endblock %}

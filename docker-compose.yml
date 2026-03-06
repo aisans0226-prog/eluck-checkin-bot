@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    container_name: checkin-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data   # persist SQLite DB + logs
+    # Uncomment for webhook mode:
+    # ports:
+    #   - "8443:8443"
