@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Links / Mini App{% endblock %}
+{% block breadcrumb %}Dashboard / Links &amp; Mini App Configuration{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">🔗 Links &amp; Telegram Mini App</h5>
+  <span class="text-muted" style="font-size:.78rem">
+    <i class="bi bi-info-circle me-1"></i>Changes apply on next user interaction with bot
+  </span>
+</div>
+
+<form method="POST" action="/links">
+  <div class="row g-3">
+
+    <!-- URL Links -->
+    <div class="col-lg-7">
+      <div class="glass p-4 h-100">
+        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-link-45deg me-2"></i>Button URLs</h6>
+
+        {% set link_fields = [
+          ('PLAY_URL',      '🎮 Play URL',       'https://eluck.mx/?ch=100001',  'URL for the Play button on main menu'),
+          ('GAME_URL',      '🕹️ Games URL',      'https://example.com/game',     'URL for the Games button'),
+          ('EVENT_URL',     '📅 Events URL',      'https://example.com/events',   'URL for the Events button'),
+          ('DOWNLOAD_URL',  '📲 Download URL',    'https://example.com/download', 'URL for the Download button'),
+          ('CHANNEL_URL',   '📢 Channel URL',     'https://t.me/your_channel',    'Official Telegram channel link'),
+          ('COMMUNITY_URL', '👥 Community URL',    'https://t.me/your_community',  'Community group link'),
+        ] %}
+
+        {% for key, label, placeholder, help_text in link_fields %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:.85rem">{{ label }}</label>
+          <input type="url" name="{{ key }}" class="form-control form-control-sm"
+            value="{{ cfg[key] }}" placeholder="{{ placeholder }}">
+          <div style="font-size:.68rem;color:#64748b;margin-top:3px">{{ help_text }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Mini App Toggles -->
+    <div class="col-lg-5">
+      <div class="glass p-4">
+        <h6 class="fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-phone me-2"></i>Telegram Mini App Mode</h6>
+        <p style="font-size:.78rem;color:#94a3b8;margin-bottom:1.5rem">
+          Enable Mini App mode to open the link <strong>inside Telegram</strong> as a native app,
+          instead of opening in the external browser.<br>
+          <span class="text-warning">Requires HTTPS URL.</span>
+        </p>
+
+        <!-- Play as WebApp -->
+        <div class="glass p-3 mb-3">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="switchPlay"
+              name="PLAY_AS_WEBAPP" value="true"
+              {% if cfg.PLAY_AS_WEBAPP == 'true' %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="switchPlay">
+              🎮 Play &rarr; Mini App
+            </label>
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:4px">
+            When ON, the Play button opens as a Telegram Mini App (fullscreen, no address bar)
+          </div>
+        </div>
+
+        <!-- Game as WebApp -->
+        <div class="glass p-3 mb-3">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="switchGame"
+              name="GAME_AS_WEBAPP" value="true"
+              {% if cfg.GAME_AS_WEBAPP == 'true' %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="switchGame">
+              🕹️ Games &rarr; Mini App
+            </label>
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:4px">
+            When ON, the Games button opens as a Telegram Mini App
+          </div>
+        </div>
+
+        <!-- Info card -->
+        <div class="glass p-3" style="border-left: 3px solid #6f42c1;">
+          <div class="fw-semibold mb-2" style="font-size:.82rem"><i class="bi bi-lightbulb me-1 text-warning"></i>Mini App vs Link</div>
+          <table style="font-size:.72rem;color:#94a3b8;width:100%">
+            <tr>
+              <td style="padding:3px 8px 3px 0"><strong class="text-purple">Mini App</strong></td>
+              <td>Fullscreen, no URL bar, native feel, stays in Telegram</td>
+            </tr>
+            <tr>
+              <td style="padding:3px 8px 3px 0"><strong style="color:#64748b">Link</strong></td>
+              <td>Opens in built-in browser with URL bar, can share URL</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="glass p-4 mt-3">
+        <h6 class="fw-semibold mb-3" style="font-size:.85rem"><i class="bi bi-eye me-2"></i>Preview</h6>
+        <div style="font-size:.78rem;color:#94a3b8">
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge me-2" id="badgePlay"
+              style="font-size:.65rem">
+              {% if cfg.PLAY_AS_WEBAPP == 'true' %}
+                <span class="badge bg-success">Mini App</span>
+              {% else %}
+                <span class="badge bg-secondary">Link</span>
+              {% endif %}
+            </span>
+            <strong>Play:</strong>&nbsp;
+            <span class="text-truncate" style="max-width:200px" title="{{ cfg.PLAY_URL }}">{{ cfg.PLAY_URL or '(not set)' }}</span>
+          </div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge me-2" id="badgeGame">
+              {% if cfg.GAME_AS_WEBAPP == 'true' %}
+                <span class="badge bg-success">Mini App</span>
+              {% else %}
+                <span class="badge bg-secondary">Link</span>
+              {% endif %}
+            </span>
+            <strong>Games:</strong>&nbsp;
+            <span class="text-truncate" style="max-width:200px" title="{{ cfg.GAME_URL }}">{{ cfg.GAME_URL or '(not set)' }}</span>
+          </div>
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge bg-secondary me-2" style="font-size:.65rem">Link</span>
+            <strong>Events:</strong>&nbsp;
+            <span class="text-truncate" style="max-width:200px">{{ cfg.EVENT_URL or '(not set)' }}</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <span class="badge bg-secondary me-2" style="font-size:.65rem">Link</span>
+            <strong>Download:</strong>&nbsp;
+            <span class="text-truncate" style="max-width:200px">{{ cfg.DOWNLOAD_URL or '(not set)' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-flex justify-content-end mt-4">
+    <button type="submit" class="btn btn-purple px-5">
+      <i class="bi bi-check-lg me-1"></i> Save Configuration
+    </button>
+  </div>
+</form>
+{% endblock %}

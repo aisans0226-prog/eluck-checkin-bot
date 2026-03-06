@@ -2,9 +2,33 @@
 # utils/keyboard.py — Inline & ReplyKeyboard factory helpers
 # ============================================================
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from utils.i18n import t
 import config
+from models.bot_config import get_config
+from database import SessionLocal
+
+
+def _get_link(key: str, fallback: str) -> str:
+    """Read a link from DB config, falling back to config.py value."""
+    try:
+        db = SessionLocal()
+        val = get_config(db, key)
+        db.close()
+        return val if val else fallback
+    except Exception:
+        return fallback
+
+
+def _get_bool(key: str, fallback: bool) -> bool:
+    """Read a boolean flag from DB config."""
+    try:
+        db = SessionLocal()
+        val = get_config(db, key)
+        db.close()
+        return val.lower() == "true" if val else fallback
+    except Exception:
+        return fallback
 
 
 def main_menu_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
@@ -12,6 +36,13 @@ def main_menu_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
     Build the main menu inline keyboard shown on /start and Home button.
     Matches the spec layout exactly.
     """
+    play_url      = _get_link("PLAY_URL",     config.PLAY_URL)
+    game_url      = _get_link("GAME_URL",     config.GAME_URL)
+    event_url     = _get_link("EVENT_URL",    config.EVENT_URL)
+    download_url  = _get_link("DOWNLOAD_URL", config.DOWNLOAD_URL)
+    play_webapp   = _get_bool("PLAY_AS_WEBAPP", config.PLAY_AS_WEBAPP)
+    game_webapp   = _get_bool("GAME_AS_WEBAPP", config.GAME_AS_WEBAPP)
+
     buttons = [
         # Row 1
         [
@@ -20,17 +51,25 @@ def main_menu_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
         ],
         # Row 2
         [
-            InlineKeyboardButton(t("btn_events", lang), url=config.EVENT_URL),
+            InlineKeyboardButton(t("btn_events", lang), url=event_url),
         ],
         # Row 3
         [
-            InlineKeyboardButton(t("btn_games", lang), url=config.GAME_URL),
+            InlineKeyboardButton(
+                t("btn_games", lang),
+                web_app=WebAppInfo(url=game_url) if game_webapp else None,
+                url=game_url if not game_webapp else None,
+            ),
             InlineKeyboardButton(t("btn_leaderboard", lang), callback_data="menu:leaderboard"),
         ],
         # Row 4
         [
-            InlineKeyboardButton(t("btn_download", lang), url=config.DOWNLOAD_URL),
-            InlineKeyboardButton(t("btn_play", lang), url=config.PLAY_URL),
+            InlineKeyboardButton(t("btn_download", lang), url=download_url),
+            InlineKeyboardButton(
+                t("btn_play", lang),
+                web_app=WebAppInfo(url=play_url) if play_webapp else None,
+                url=play_url if not play_webapp else None,
+            ),
         ],
         # Row 5 — extra utility
         [

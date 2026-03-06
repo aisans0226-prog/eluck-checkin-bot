@@ -58,3 +58,15 @@ DEFAULT_CONFIGS = {
     "LEADERBOARD_SIZE": ("10", "Number of entries shown in leaderboard"),
     "STREAK_REMINDER_HOUR": ("18", "Hour (UTC) to send streak reminder notifications"),
 }
+
+# Link & Mini App config keys
+DEFAULT_LINK_CONFIGS = {
+    "PLAY_URL":       ("", "Play button URL"),
+    "GAME_URL":       ("", "Games button URL"),
+    "EVENT_URL":      ("", "Events button URL"),
+    "DOWNLOAD_URL":   ("", "Download button URL"),
+    "CHANNEL_URL":    ("", "Official channel URL"),
+    "COMMUNITY_URL":  ("", "Community group URL"),
+    "PLAY_AS_WEBAPP": ("true",  "Open Play as Telegram Mini App (true/false)"),
+    "GAME_AS_WEBAPP": ("false", "Open Games as Telegram Mini App (true/false)"),
+}

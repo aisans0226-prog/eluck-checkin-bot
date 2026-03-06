@@ -11,6 +11,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Module-level session factory — set by init_db()
+SessionLocal = None
+
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
@@ -74,8 +77,13 @@ def init_db(database_url: str):
     # ── Additive migrations (safe to re-run on every startup) ──
     _run_migrations(engine)
 
-    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-    return engine, SessionLocal
+    _SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+    # Store globally so other modules can import it
+    global SessionLocal
+    SessionLocal = _SessionLocal
+
+    return engine, _SessionLocal
 
 
 def _run_migrations(engine) -> None:

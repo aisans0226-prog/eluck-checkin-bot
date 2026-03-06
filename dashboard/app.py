@@ -45,7 +45,7 @@ from models.checkin import CheckinLog
 from models.referral import Referral
 from models.task import UserTask
 from models.task_definition import TaskDefinition
-from models.bot_config import BotConfig, get_config, set_config, DEFAULT_CONFIGS
+from models.bot_config import BotConfig, get_config, set_config, DEFAULT_CONFIGS, DEFAULT_LINK_CONFIGS
 from models.dashboard_user import DashboardUser
 from models.audit_log import AuditLog
 
@@ -694,6 +694,60 @@ def rewards():
         db.rollback()
         flash(f"Error: {exc}", "danger")
         return redirect(url_for("rewards"))
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────
+# ROUTES — Bot Links / Mini App Configuration
+# ─────────────────────────────────────────────────────────────
+def get_link_config(db) -> dict:
+    return {
+        "PLAY_URL":       get_config(db, "PLAY_URL",       config.PLAY_URL),
+        "GAME_URL":       get_config(db, "GAME_URL",       config.GAME_URL),
+        "EVENT_URL":      get_config(db, "EVENT_URL",      config.EVENT_URL),
+        "DOWNLOAD_URL":   get_config(db, "DOWNLOAD_URL",   config.DOWNLOAD_URL),
+        "CHANNEL_URL":    get_config(db, "CHANNEL_URL",     config.CHANNEL_URL),
+        "COMMUNITY_URL":  get_config(db, "COMMUNITY_URL",  config.COMMUNITY_URL),
+        "PLAY_AS_WEBAPP": get_config(db, "PLAY_AS_WEBAPP",  str(config.PLAY_AS_WEBAPP).lower()),
+        "GAME_AS_WEBAPP": get_config(db, "GAME_AS_WEBAPP",  str(config.GAME_AS_WEBAPP).lower()),
+    }
+
+
+@app.route("/links", methods=["GET", "POST"])
+@permission_required("rewards")
+def links():
+    db = db_session()
+    try:
+        if request.method == "POST":
+            url_keys = [
+                "PLAY_URL", "GAME_URL", "EVENT_URL",
+                "DOWNLOAD_URL", "CHANNEL_URL", "COMMUNITY_URL",
+            ]
+            bool_keys = ["PLAY_AS_WEBAPP", "GAME_AS_WEBAPP"]
+            changes = []
+            for key in url_keys:
+                val = request.form.get(key, "").strip()
+                old_val = get_config(db, key, "")
+                if val != old_val:
+                    set_config(db, key, val, DEFAULT_LINK_CONFIGS.get(key, ("", ""))[1])
+                    changes.append(f"{key}: {old_val} → {val}")
+            for key in bool_keys:
+                val = "true" if request.form.get(key) else "false"
+                old_val = get_config(db, key, "false")
+                if val != old_val:
+                    set_config(db, key, val, DEFAULT_LINK_CONFIGS.get(key, ("", ""))[1])
+                    changes.append(f"{key}: {old_val} → {val}")
+            db.commit()
+            if changes:
+                log_action("update_links", "links", " | ".join(changes))
+            flash("Link configuration saved successfully!", "success")
+            return redirect(url_for("links"))
+        return render_template("links.html", cfg=get_link_config(db))
+    except Exception as exc:
+        db.rollback()
+        flash(f"Error: {exc}", "danger")
+        return redirect(url_for("links"))
     finally:
         db.close()
 

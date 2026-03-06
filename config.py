@@ -40,6 +40,10 @@ PLAY_URL: str = os.getenv("PLAY_URL", "https://example.com/play")
 CHANNEL_URL: str = os.getenv("CHANNEL_URL", "https://t.me/your_channel")
 COMMUNITY_URL: str = os.getenv("COMMUNITY_URL", "https://t.me/your_community")
 
+# Mini App mode — set to "true" to open as Telegram Mini App instead of browser
+PLAY_AS_WEBAPP: bool = os.getenv("PLAY_AS_WEBAPP", "true").lower() == "true"
+GAME_AS_WEBAPP: bool = os.getenv("GAME_AS_WEBAPP", "false").lower() == "true"
+
 # ─────────────────────────────────────────────────────────────
 # REWARD SETTINGS
 # ─────────────────────────────────────────────────────────────
