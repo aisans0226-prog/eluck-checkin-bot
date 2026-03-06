@@ -163,11 +163,28 @@
     <a href="/broadcast" class="nav-link {% if '/broadcast' in request.path %}active{% endif %}">
       <i class="bi bi-megaphone-fill"></i> Broadcast
     </a>
+
+    <div class="nav-section-title">Admin</div>
+    <a href="/audit-log" class="nav-link {% if '/audit-log' in request.path %}active{% endif %}">
+      <i class="bi bi-journal-text"></i> Audit Log
+    </a>
+    {% if current_role == 'super_admin' %}
+    <a href="/admin-accounts" class="nav-link {% if '/admin-accounts' in request.path %}active{% endif %}">
+      <i class="bi bi-shield-lock-fill"></i> Admin Accounts
+    </a>
+    {% endif %}
   </div>
 
   <div class="sidebar-footer">
     <div class="d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-person-circle me-1"></i>{{ session.get('username','admin') }}</span>
+      <div>
+        <span><i class="bi bi-person-circle me-1"></i>{{ session.get('username','admin') }}</span>
+        {% if current_role == 'super_admin' %}
+          <span class="badge bg-warning text-dark d-block mt-1" style="font-size:.6rem">Super Admin</span>
+        {% elif current_role %}
+          <span class="badge bg-secondary d-block mt-1" style="font-size:.6rem">Admin</span>
+        {% endif %}
+      </div>
       <a href="/logout" class="text-danger text-decoration-none" title="Logout">
         <i class="bi bi-box-arrow-right"></i>
       </a>
