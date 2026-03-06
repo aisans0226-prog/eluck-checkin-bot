@@ -39,17 +39,54 @@
   </form>
 </div>
 
+<!-- Bulk Action Bar (shown when rows are selected) -->
+<div id="bulk-bar" class="glass p-2 mb-3 d-none" style="border-color:#6f42c1">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <span class="text-warning fw-semibold" style="font-size:.85rem">
+      <i class="bi bi-check2-square me-1"></i><span id="selected-count">0</span> selected
+    </span>
+    <div class="ms-auto d-flex gap-2 flex-wrap align-items-center">
+      <button type="button" class="btn btn-sm btn-outline-warning" onclick="bulkAction('reset_streak')">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAction('clear_game_id')">
+        <i class="bi bi-x-circle me-1"></i>Clear Game ID
+      </button>
+      <div class="d-flex gap-1 align-items-center">
+        <input type="number" id="bulk-points-delta" class="form-control form-control-sm"
+               style="width:80px" placeholder="pts" value="0">
+        <button type="button" class="btn btn-sm btn-outline-success" onclick="bulkAction('add_points')">
+          <i class="bi bi-coin me-1"></i>Add Points
+        </button>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+        <i class="bi bi-x"></i> Deselect All
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden form for bulk action POST -->
+<form id="bulk-form" method="POST" action="/users/bulk-action"></form>
+
 <!-- Users Table -->
 <div class="glass">
   <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center">
     <span class="text-muted" style="font-size:.8rem">
       <strong class="text-light">{{ users | length }}</strong> users found
     </span>
+    <label class="d-flex align-items-center gap-2 text-muted mb-0" style="font-size:.8rem; cursor:pointer">
+      <input type="checkbox" id="select-all-top" class="form-check-input mt-0">
+      <span>Select all</span>
+    </label>
   </div>
   <div style="overflow-x:auto">
     <table class="table mb-0">
       <thead>
         <tr>
+          <th style="width:36px;padding-right:0">
+            <input type="checkbox" id="select-all-header" class="form-check-input">
+          </th>
           <th>User</th>
           <th>Game ID</th>
           <th>Streak</th>
@@ -62,10 +99,11 @@
         </tr>
       </thead>
       <tbody>
-        {% set today = namespace(d=none) %}
         {% for u in users %}
-        {% set days_ago = (now - u.last_checkin).days if u.last_checkin else 999 %}
         <tr>
+          <td style="padding-right:0">
+            <input type="checkbox" class="row-check form-check-input" value="{{ u.telegram_id }}">
+          </td>
           <td>
             <div class="d-flex align-items-center gap-2">
               <div class="avatar">{{ (u.first_name or u.username or 'U')[0].upper() }}</div>
@@ -88,7 +126,7 @@
           <td>{{ u.referral_count }}</td>
           <td class="text-muted" style="font-size:.8rem">{{ u.last_checkin or '—' }}</td>
           <td>
-            {% if u.last_checkin and (u.last_checkin | string) >= (now_7d | string) %}
+            {% if u.last_checkin and u.last_checkin >= now_7d %}
               <span class="badge badge-active">Active</span>
             {% else %}
               <span class="badge badge-inactive">Inactive</span>
@@ -101,10 +139,77 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-center text-muted py-4">No users found</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4">No users found</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Bulk selection helpers ────────────────────────────────────
+const allChecks   = () => [...document.querySelectorAll('.row-check')];
+const checkedList = () => allChecks().filter(c => c.checked);
+
+function updateBulkBar() {
+  const n   = checkedList().length;
+  const all = allChecks().length;
+  document.getElementById('selected-count').textContent = n;
+  document.getElementById('bulk-bar').classList.toggle('d-none', n === 0);
+  const isAll = (n === all && all > 0);
+  document.getElementById('select-all-header').checked = isAll;
+  document.getElementById('select-all-top').checked    = isAll;
+}
+
+function syncSelectAll(checked) {
+  allChecks().forEach(c => c.checked = checked);
+  updateBulkBar();
+}
+
+function clearSelection() {
+  allChecks().forEach(c => c.checked = false);
+  updateBulkBar();
+}
+
+document.getElementById('select-all-header')
+        .addEventListener('change', e => syncSelectAll(e.target.checked));
+document.getElementById('select-all-top')
+        .addEventListener('change', e => syncSelectAll(e.target.checked));
+document.querySelectorAll('.row-check')
+        .forEach(c => c.addEventListener('change', updateBulkBar));
+
+// ── Bulk action submission ────────────────────────────────────
+function bulkAction(action) {
+  const ids = checkedList().map(c => c.value);
+  if (!ids.length) return;
+
+  let msg;
+  if (action === 'reset_streak')  msg = `Reset streak for ${ids.length} user(s)?`;
+  else if (action === 'clear_game_id') msg = `Clear Game ID for ${ids.length} user(s)?`;
+  else if (action === 'add_points') {
+    const delta = parseInt(document.getElementById('bulk-points-delta').value || '0');
+    const sign  = delta >= 0 ? '+' : '';
+    msg = `Apply ${sign}${delta} points to ${ids.length} user(s)?`;
+  }
+  if (!confirm(msg)) return;
+
+  const form = document.getElementById('bulk-form');
+  form.innerHTML = '';
+
+  const addHidden = (name, val) => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = val;
+    form.appendChild(inp);
+  };
+
+  addHidden('action', action);
+  if (action === 'add_points') {
+    addHidden('delta', document.getElementById('bulk-points-delta').value || '0');
+  }
+  ids.forEach(id => addHidden('user_ids', id));
+  form.submit();
+}
+</script>
 {% endblock %}

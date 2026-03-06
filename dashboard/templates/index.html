@@ -26,7 +26,8 @@
     </div>
   </div>
   <div class="col-6 col-xl-3">
-    <div class="stat-card">
+    <a href="/users?filter=active" class="text-decoration-none">
+    <div class="stat-card" style="cursor:pointer">
       <div class="stat-icon" style="background:rgba(251,146,60,.2)">
         <span>🔥</span>
       </div>
@@ -36,8 +37,10 @@
         {% if total_users > 0 %}
           {{ ((active_7d / total_users) * 100) | round(1) }}% retention
         {% else %}—{% endif %}
+        <i class="bi bi-arrow-right-short"></i>
       </div>
     </div>
+    </a>
   </div>
   <div class="col-6 col-xl-3">
     <div class="stat-card">

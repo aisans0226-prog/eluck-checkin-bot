@@ -465,6 +465,68 @@ def user_detail(telegram_id: int):
         db.close()
 
 
+@app.route("/users/bulk-action", methods=["POST"])
+@permission_required("users")
+def users_bulk_action():
+    db = db_session()
+    try:
+        action   = request.form.get("action", "")
+        user_ids = request.form.getlist("user_ids")
+        if not user_ids:
+            flash("No users selected.", "warning")
+            return redirect(url_for("users"))
+
+        # Convert to int, drop invalid values
+        try:
+            telegram_ids = [int(x) for x in user_ids]
+        except ValueError:
+            flash("Invalid user selection.", "danger")
+            return redirect(url_for("users"))
+
+        affected = (
+            db.query(User).filter(User.telegram_id.in_(telegram_ids)).all()
+        )
+        n = len(affected)
+
+        if action == "reset_streak":
+            for u in affected:
+                u.streak = 0
+            db.commit()
+            log_action("bulk_reset_streak", f"{n} users", str(telegram_ids[:10]))
+            flash(f"Streak reset for {n} user(s).", "success")
+
+        elif action == "clear_game_id":
+            for u in affected:
+                u.game_id = None
+            db.commit()
+            log_action("bulk_clear_game_id", f"{n} users", str(telegram_ids[:10]))
+            flash(f"Game ID cleared for {n} user(s).", "success")
+
+        elif action == "add_points":
+            try:
+                delta = int(request.form.get("delta", 0))
+            except ValueError:
+                flash("Invalid point value.", "danger")
+                return redirect(url_for("users"))
+            for u in affected:
+                u.points = max(0, u.points + delta)
+            db.commit()
+            sign = "+" if delta >= 0 else ""
+            log_action("bulk_add_points", f"{n} users", f"{sign}{delta} | ids={telegram_ids[:10]}")
+            flash(f"Points adjusted {sign}{delta} for {n} user(s).", "success")
+
+        else:
+            flash(f"Unknown bulk action: {action}", "danger")
+
+    except Exception as exc:
+        db.rollback()
+        flash(f"Bulk action failed: {exc}", "danger")
+    finally:
+        db.close()
+
+    return redirect(url_for("users"))
+
+
 @app.route("/users/export")
 @permission_required("export")
 def export_users():

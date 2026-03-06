@@ -158,10 +158,10 @@
     </a>
 
     <div class="nav-section-title" data-i18n="sec_users">Users</div>
-    <a href="/users" class="nav-link {% if '/users' in request.path %}active{% endif %}">
+    <a href="/users" class="nav-link {% if '/users' in request.path and request.args.get('filter','all') != 'active' %}active{% endif %}">
       <i class="bi bi-people-fill"></i> <span data-i18n="nav_all_users">All Users</span>
     </a>
-    <a href="/users?filter=active" class="nav-link">
+    <a href="/users?filter=active" class="nav-link {% if '/users' in request.path and request.args.get('filter') == 'active' %}active{% endif %}">
       <i class="bi bi-person-check-fill"></i> <span data-i18n="nav_active_users">Active Users</span>
     </a>
     <a href="/users/export" class="nav-link">
