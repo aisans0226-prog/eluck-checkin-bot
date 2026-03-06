@@ -146,3 +146,85 @@ DASHBOARD_SECRET_KEY=<random-secret>
 DASHBOARD_HOST=127.0.0.1
 DASHBOARD_PORT=5000
 ```
+
+---
+
+## Session: 2026-03-06 — VPS Deployment
+
+### Summary
+Deployed the bot and dashboard to a production Ubuntu 22.04 VPS (`222.255.238.143`).
+Added `update.sh` one-command update script for future deploys.
+
+---
+
+### VPS Environment
+
+| Item | Value |
+|------|-------|
+| OS | Ubuntu 22.04.5 LTS |
+| Python | 3.10.12 |
+| RAM | 5.8 GB |
+| Disk | 49 GB (13% used) |
+| Bot service | `eluck-checkin-bot` (systemd) |
+| Dashboard service | `eluck-dashboard` (systemd) |
+| Dashboard URL | `http://222.255.238.143:5001` |
+
+---
+
+### Deployment Steps
+
+1. **System deps** — `apt install python3-pip python3-venv python3-dev git build-essential`
+2. **Clone repo** — `git clone https://github.com/aisans0226-prog/eluck-checkin-bot.git /opt/eluck-checkin-bot`
+3. **Virtualenv** — `python3 -m venv venv && pip install -r requirements.txt`
+4. **Config** — Created `.env` at `/opt/eluck-checkin-bot/.env`
+5. **Systemd services** — `/etc/systemd/system/eluck-checkin-bot.service` + `eluck-dashboard.service`
+6. **Enable + start** — `systemctl enable --now eluck-checkin-bot eluck-dashboard`
+
+### Systemd Service Files
+
+**`/etc/systemd/system/eluck-checkin-bot.service`**
+```ini
+[Service]
+WorkingDirectory=/opt/eluck-checkin-bot
+ExecStart=/opt/eluck-checkin-bot/venv/bin/python bot.py
+Restart=on-failure
+RestartSec=15
+EnvironmentFile=-/opt/eluck-checkin-bot/.env
+```
+
+**`/etc/systemd/system/eluck-dashboard.service`**
+```ini
+[Service]
+WorkingDirectory=/opt/eluck-checkin-bot
+ExecStart=/opt/eluck-checkin-bot/venv/bin/python dashboard/app.py
+Restart=always
+RestartSec=10
+```
+
+---
+
+### Issues & Fixes
+
+#### Dashboard WorkingDirectory wrong path
+- **Problem:** Old service had `WorkingDirectory=/opt/eluck-checkin-bot/dashboard` → `sqlite:///data/database.db` resolved to wrong path → `OperationalError: unable to open database file`
+- **Fix:** Changed to `WorkingDirectory=/opt/eluck-checkin-bot`
+
+#### Duplicate bot instance conflict
+- **Problem:** Two systemd services (`eluck-bot.service` + `eluck-checkin-bot.service`) both running `bot.py` → Telegram API error: `Conflict: terminated by other getUpdates request`
+- **Fix:** Stopped, disabled, and deleted `eluck-bot.service` (the duplicate created during testing)
+
+#### `update.sh` CRLF line ending corruption
+- **Problem:** Script written on Windows had CRLF (`\r\n`) endings; bash on Linux treats `\r` as part of variable names → `cd: too many arguments`
+- **Fix:** Upload via SFTP with explicit `content.replace(b'\r\n', b'\n')` before writing
+
+---
+
+### Update Command (for future deploys)
+
+After pushing code changes to GitHub, SSH into VPS and run:
+
+```bash
+bash /opt/eluck-checkin-bot/update.sh
+```
+
+Script does: `git pull` → `pip install` → `systemctl restart` both services → status check.
