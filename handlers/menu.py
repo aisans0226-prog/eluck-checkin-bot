@@ -66,23 +66,23 @@ async def menu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
     elif data == "menu:profile":
-        from handlers.profile import profile_handler
-        await profile_handler(update, context)
+        from handlers.profile import _profile_impl
+        await _profile_impl(update, context)
 
     elif data == "menu:checkin":
         from handlers.checkin import checkin_entry
         await checkin_entry(update, context)
 
     elif data == "menu:leaderboard":
-        from handlers.checkin import leaderboard_handler
-        await leaderboard_handler(update, context)
+        from handlers.checkin import _leaderboard_impl
+        await _leaderboard_impl(update, context)
 
     elif data == "menu:tasks":
         await _show_tasks(update, context, lang)
 
     elif data == "menu:referral":
-        from handlers.profile import referral_handler
-        await referral_handler(update, context)
+        from handlers.profile import _referral_impl
+        await _referral_impl(update, context)
 
     elif data.startswith("task:view:"):
         task_id = data.split(":", 2)[2]

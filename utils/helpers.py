@@ -8,10 +8,19 @@ from datetime import date, datetime
 from functools import wraps
 from typing import Callable
 
+import pytz
 from telegram import Update
 from telegram.ext import ContextTypes
 
 import config
+
+# ── Mexico City timezone (UTC-6 / UTC-5 DST) ─────────────────
+MEXICO_TZ = pytz.timezone("America/Mexico_City")
+
+
+def today_mexico() -> date:
+    """Return the current date in Mexico City timezone."""
+    return datetime.now(MEXICO_TZ).date()
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +94,10 @@ def rank_emoji(rank: int) -> str:
 
 
 def is_today(d: date | None) -> bool:
-    """Check whether a date is today (UTC)."""
+    """Check whether a date is today (Mexico City time)."""
     if d is None:
         return False
-    return d == date.today()
+    return d == today_mexico()
 
 
 # ─────────────────────────────────────────────────────────────

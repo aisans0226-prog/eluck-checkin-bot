@@ -23,15 +23,16 @@ import config
 logger = logging.getLogger(__name__)
 
 
-@rate_limited
-async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display the user's profile card."""
+# ─────────────────────────────────────────────────────────────
+# Internal implementation — no rate limiting, no answer()
+# Called directly by menu_callback_handler (which already
+# answers the query and is itself rate-limited).
+# ─────────────────────────────────────────────────────────────
+async def _profile_impl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Core profile display logic (no rate limiting, no answer())."""
     tg_user = update.effective_user
     if not tg_user:
         return
-
-    if update.callback_query:
-        await update.callback_query.answer()
 
     db = context.bot_data["db_session"]()
     try:
@@ -74,15 +75,11 @@ async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         db.close()
 
 
-@rate_limited
-async def referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show the user's referral link and stats."""
+async def _referral_impl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Core referral display logic (no rate limiting, no answer())."""
     tg_user = update.effective_user
     if not tg_user:
         return
-
-    if update.callback_query:
-        await update.callback_query.answer()
 
     db = context.bot_data["db_session"]()
     try:
@@ -109,3 +106,23 @@ async def referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     finally:
         db.close()
+
+
+# ─────────────────────────────────────────────────────────────
+# Public handlers — rate-limited, answer the callback query.
+# Registered as CommandHandlers (/profile, /referral) in bot.py
+# ─────────────────────────────────────────────────────────────
+@rate_limited
+async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display the user's profile card. Entry point for /profile command."""
+    if update.callback_query:
+        await update.callback_query.answer()
+    await _profile_impl(update, context)
+
+
+@rate_limited
+async def referral_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show the user's referral link and stats. Entry point for /referral command."""
+    if update.callback_query:
+        await update.callback_query.answer()
+    await _referral_impl(update, context)

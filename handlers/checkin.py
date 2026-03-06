@@ -141,16 +141,13 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 # ─────────────────────────────────────────────────────────────
 # /leaderboard command
 # ─────────────────────────────────────────────────────────────
-async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display top users by total check-ins."""
+async def _leaderboard_impl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Core leaderboard display logic (no answer())."""
     from services.checkin_service import get_leaderboard
     from utils.helpers import rank_emoji
 
     db = context.bot_data["db_session"]()
     try:
-        if update.callback_query:
-            await update.callback_query.answer()
-
         lang = _get_lang(db, update.effective_user.id)
         top_users = get_leaderboard(db, limit=config.LEADERBOARD_SIZE)
 
@@ -177,6 +174,13 @@ async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     finally:
         db.close()
+
+
+async def leaderboard_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display top users by total check-ins. Entry point for /leaderboard command."""
+    if update.callback_query:
+        await update.callback_query.answer()
+    await _leaderboard_impl(update, context)
 
 
 # ─────────────────────────────────────────────────────────────

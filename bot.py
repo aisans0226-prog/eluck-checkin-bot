@@ -13,7 +13,7 @@ import logging
 import sys
 import asyncio
 import warnings
-from datetime import date, timedelta
+from datetime import timedelta
 
 from telegram import Update
 from telegram.ext import (
@@ -29,6 +29,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
 from database import init_db
+from utils.helpers import today_mexico
 
 # ── Handlers ─────────────────────────────────────────────────
 from handlers.start import start_handler
@@ -92,7 +93,7 @@ async def job_streak_reminder(app: Application) -> None:
     """
     db = app.bot_data["db_session"]()
     try:
-        today = date.today()
+        today = today_mexico()
         # Find users who checked in yesterday but NOT today (active streamers at risk)
         yesterday = today - timedelta(days=1)
         at_risk = (
@@ -130,7 +131,7 @@ async def job_backup_db(_app: Application) -> None:
     """
     import shutil, os
     src = "data/database.db"
-    dst = f"data/backup_{date.today().isoformat()}.db"
+    dst = f"data/backup_{today_mexico().isoformat()}.db"
     if os.path.exists(src):
         shutil.copy2(src, dst)
         logger.info("[Scheduler] Database backed up to %s", dst)
@@ -239,7 +240,7 @@ def build_application() -> Application:
 # ─────────────────────────────────────────────────────────────
 def setup_scheduler(app: Application) -> AsyncIOScheduler:
     """Configure APScheduler jobs and attach them to the app."""
-    scheduler = AsyncIOScheduler(timezone="UTC")
+    scheduler = AsyncIOScheduler(timezone="America/Mexico_City")
 
     # Daily reset at midnight
     scheduler.add_job(

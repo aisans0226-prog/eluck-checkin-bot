@@ -3,12 +3,13 @@
 # ============================================================
 
 import logging
-from datetime import date, timedelta
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
 from models.user import User
 from models.checkin import CheckinLog
+from utils.helpers import today_mexico
 import config
 
 logger = logging.getLogger(__name__)
@@ -70,9 +71,7 @@ def perform_checkin(db: Session, user: User) -> CheckinResult:
 
     Returns a CheckinResult value object.
     """
-    today = date.today()
-
-    # ── Guard: already checked in today ──────────────────────
+    today = today_mexico()
     if user.last_checkin == today:
         return CheckinResult(success=False, already_checked_in=True)
 
@@ -134,6 +133,6 @@ def get_leaderboard(db: Session, limit: int = 10) -> list[User]:
 
 
 def get_checkins_today(db: Session) -> int:
-    """Count how many check-ins happened today."""
-    today = date.today()
+    """Count how many check-ins happened today (Mexico City time)."""
+    today = today_mexico()
     return db.query(CheckinLog).filter(CheckinLog.checkin_date == today).count()
