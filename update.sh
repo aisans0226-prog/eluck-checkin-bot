@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
-PROJECT=/opt/eluck-checkin-bot
+PROJECT=/opt/vpoker-checkin-bot
 VENV=$PROJECT/venv
-BOT=eluck-checkin-bot
-DASH=eluck-dashboard
+BOT=vpoker-checkin-bot
+DASH=vpoker-dashboard
 echo "[1/5] git pull..."
 cd $PROJECT && git pull origin master
 echo "[2/5] pip install..."

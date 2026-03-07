@@ -110,7 +110,7 @@ def inject_globals():
     return {
         "now":            today,
         "now_7d":         week_ago,
-        "app_name":       "Eluck Check-in Bot",
+        "app_name":       "Vpoker Check in bot",
         "current_role":   session.get("role", ""),
         "current_perms":  session.get("permissions", {}),
     }

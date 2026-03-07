@@ -1,4 +1,4 @@
-# Eluck Check-in Bot — Changelog & Session Notes
+# Vpoker Check in bot — Changelog & Session Notes
 
 ## Session: 2026-03-07 — i18n, Multi-timezone Dashboard
 
@@ -21,7 +21,7 @@ Added multilingual support to both the Telegram bot and the admin dashboard, plu
 ## Session: 2026-03-06 — Full Build + Dashboard
 
 ### Summary
-Built a production-ready Telegram Community Check-in Bot (`@Eluck_checkin_bot`) with a Flask admin dashboard from scratch in a single Claude Code session.
+Built a production-ready Telegram Community Check-in Bot with a Flask admin dashboard from scratch in a single Claude Code session.
 
 ---
 
@@ -183,8 +183,8 @@ Added `update.sh` one-command update script for future deploys.
 | Python | 3.10.12 |
 | RAM | 5.8 GB |
 | Disk | 49 GB (13% used) |
-| Bot service | `eluck-checkin-bot` (systemd) |
-| Dashboard service | `eluck-dashboard` (systemd) |
+| Bot service | `vpoker-checkin-bot` (systemd) |
+| Dashboard service | `vpoker-dashboard` (systemd) |
 | Dashboard URL | `http://222.255.238.143:5001` |
 
 ---
@@ -192,29 +192,29 @@ Added `update.sh` one-command update script for future deploys.
 ### Deployment Steps
 
 1. **System deps** — `apt install python3-pip python3-venv python3-dev git build-essential`
-2. **Clone repo** — `git clone https://github.com/aisans0226-prog/eluck-checkin-bot.git /opt/eluck-checkin-bot`
+2. **Clone repo** — `git clone https://github.com/aisans0226-prog/vpoker-checkin-bot.git /opt/vpoker-checkin-bot`
 3. **Virtualenv** — `python3 -m venv venv && pip install -r requirements.txt`
-4. **Config** — Created `.env` at `/opt/eluck-checkin-bot/.env`
-5. **Systemd services** — `/etc/systemd/system/eluck-checkin-bot.service` + `eluck-dashboard.service`
-6. **Enable + start** — `systemctl enable --now eluck-checkin-bot eluck-dashboard`
+4. **Config** — Created `.env` at `/opt/vpoker-checkin-bot/.env`
+5. **Systemd services** — `/etc/systemd/system/vpoker-checkin-bot.service` + `vpoker-dashboard.service`
+6. **Enable + start** — `systemctl enable --now vpoker-checkin-bot vpoker-dashboard`
 
 ### Systemd Service Files
 
-**`/etc/systemd/system/eluck-checkin-bot.service`**
+**`/etc/systemd/system/vpoker-checkin-bot.service`**
 ```ini
 [Service]
-WorkingDirectory=/opt/eluck-checkin-bot
-ExecStart=/opt/eluck-checkin-bot/venv/bin/python bot.py
+WorkingDirectory=/opt/vpoker-checkin-bot
+ExecStart=/opt/vpoker-checkin-bot/venv/bin/python bot.py
 Restart=on-failure
 RestartSec=15
-EnvironmentFile=-/opt/eluck-checkin-bot/.env
+EnvironmentFile=-/opt/vpoker-checkin-bot/.env
 ```
 
-**`/etc/systemd/system/eluck-dashboard.service`**
+**`/etc/systemd/system/vpoker-dashboard.service`**
 ```ini
 [Service]
-WorkingDirectory=/opt/eluck-checkin-bot
-ExecStart=/opt/eluck-checkin-bot/venv/bin/python dashboard/app.py
+WorkingDirectory=/opt/vpoker-checkin-bot
+ExecStart=/opt/vpoker-checkin-bot/venv/bin/python dashboard/app.py
 Restart=always
 RestartSec=10
 ```
@@ -224,12 +224,12 @@ RestartSec=10
 ### Issues & Fixes
 
 #### Dashboard WorkingDirectory wrong path
-- **Problem:** Old service had `WorkingDirectory=/opt/eluck-checkin-bot/dashboard` → `sqlite:///data/database.db` resolved to wrong path → `OperationalError: unable to open database file`
-- **Fix:** Changed to `WorkingDirectory=/opt/eluck-checkin-bot`
+- **Problem:** Old service had `WorkingDirectory=/opt/vpoker-checkin-bot/dashboard` → `sqlite:///data/database.db` resolved to wrong path → `OperationalError: unable to open database file`
+- **Fix:** Changed to `WorkingDirectory=/opt/vpoker-checkin-bot`
 
 #### Duplicate bot instance conflict
-- **Problem:** Two systemd services (`eluck-bot.service` + `eluck-checkin-bot.service`) both running `bot.py` → Telegram API error: `Conflict: terminated by other getUpdates request`
-- **Fix:** Stopped, disabled, and deleted `eluck-bot.service` (the duplicate created during testing)
+- **Problem:** Two systemd services (`vpoker-bot.service` + `vpoker-checkin-bot.service`) both running `bot.py` → Telegram API error: `Conflict: terminated by other getUpdates request`
+- **Fix:** Stopped, disabled, and deleted `vpoker-bot.service` (the duplicate created during testing)
 
 #### `update.sh` CRLF line ending corruption
 - **Problem:** Script written on Windows had CRLF (`\r\n`) endings; bash on Linux treats `\r` as part of variable names → `cd: too many arguments`
@@ -242,7 +242,7 @@ RestartSec=10
 After pushing code changes to GitHub, SSH into VPS and run:
 
 ```bash
-bash /opt/eluck-checkin-bot/update.sh
+bash /opt/vpoker-checkin-bot/update.sh
 ```
 
 Script does: `git pull` → `pip install` → `systemctl restart` both services → status check.
