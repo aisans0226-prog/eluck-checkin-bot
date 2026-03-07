@@ -26,11 +26,11 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">👥 User Management
+  <h5 class="fw-bold mb-0"><span data-i18n="page_users">👥 User Management</span>
     <span class="text-muted fw-normal" style="font-size:.85rem">({{ total_count }} total)</span>
   </h5>
   <a href="/users/export" class="btn btn-sm btn-outline-success">
-    <i class="bi bi-download me-1"></i>Export CSV
+    <i class="bi bi-download me-1"></i><span data-i18n="btn_export_csv">Export CSV</span>
   </a>
 </div>
 
@@ -45,27 +45,27 @@
             <i class="bi bi-search text-muted"></i>
           </span>
           <input type="text" name="q" class="form-control border-start-0"
-                 placeholder="Search username, game ID…" value="{{ q }}">
+                 placeholder="Search username, game ID…" data-i18n-placeholder="placeholder_search" value="{{ q }}">
         </div>
       </div>
 
       <!-- Status filter -->
       <div class="col-6 col-md-2">
         <select name="filter" class="form-select form-select-sm">
-          <option value="all"          {% if filt=='all'          %}selected{% endif %}>All Users</option>
-          <option value="active"       {% if filt=='active'       %}selected{% endif %}>Active (7d)</option>
-          <option value="inactive"     {% if filt=='inactive'     %}selected{% endif %}>Inactive (7d+)</option>
-          <option value="no_game_id"   {% if filt=='no_game_id'   %}selected{% endif %}>No Game ID</option>
-          <option value="has_referrals"{% if filt=='has_referrals'%}selected{% endif %}>Has Referrals</option>
-          <option value="banned"       {% if filt=='banned'       %}selected{% endif %}>Banned</option>
-          <option value="blocked"      {% if filt=='blocked'      %}selected{% endif %}>Blocked</option>
+          <option value="all"          {% if filt=='all'          %}selected{% endif %} data-i18n="opt_all_users">All Users</option>
+          <option value="active"       {% if filt=='active'       %}selected{% endif %} data-i18n="opt_active_7d">Active (7d)</option>
+          <option value="inactive"     {% if filt=='inactive'     %}selected{% endif %} data-i18n="opt_inactive_7d">Inactive (7d+)</option>
+          <option value="no_game_id"   {% if filt=='no_game_id'   %}selected{% endif %} data-i18n="opt_no_game_id">No Game ID</option>
+          <option value="has_referrals"{% if filt=='has_referrals'%}selected{% endif %} data-i18n="opt_has_referrals">Has Referrals</option>
+          <option value="banned"       {% if filt=='banned'       %}selected{% endif %} data-i18n="opt_banned">Banned</option>
+          <option value="blocked"      {% if filt=='blocked'      %}selected{% endif %} data-i18n="opt_blocked">Blocked</option>
         </select>
       </div>
 
       <!-- Language filter -->
       <div class="col-6 col-md-2">
         <select name="lang" class="form-select form-select-sm">
-          <option value="">All Languages</option>
+          <option value="" data-i18n="opt_all_langs">All Languages</option>
           {% for lang in langs %}
           <option value="{{ lang }}" {% if lang_filter == lang %}selected{% endif %}>
             {{ lang | upper }}
@@ -77,11 +77,11 @@
       <!-- Sort -->
       <div class="col-6 col-md-2">
         <select name="sort" class="form-select form-select-sm">
-          <option value="total_checkin" {% if sort=='total_checkin' %}selected{% endif %}>Sort: Check-ins</option>
-          <option value="streak"        {% if sort=='streak'        %}selected{% endif %}>Sort: Streak</option>
-          <option value="points"        {% if sort=='points'        %}selected{% endif %}>Sort: Points</option>
-          <option value="last_checkin"  {% if sort=='last_checkin'  %}selected{% endif %}>Sort: Last Active</option>
-          <option value="register_date" {% if sort=='register_date' %}selected{% endif %}>Sort: Registered</option>
+          <option value="total_checkin" {% if sort=='total_checkin' %}selected{% endif %} data-i18n="sort_checkins">Sort: Check-ins</option>
+          <option value="streak"        {% if sort=='streak'        %}selected{% endif %} data-i18n="sort_streak">Sort: Streak</option>
+          <option value="points"        {% if sort=='points'        %}selected{% endif %} data-i18n="sort_points">Sort: Points</option>
+          <option value="last_checkin"  {% if sort=='last_checkin'  %}selected{% endif %} data-i18n="sort_last_active">Sort: Last Active</option>
+          <option value="register_date" {% if sort=='register_date' %}selected{% endif %} data-i18n="sort_registered">Sort: Registered</option>
         </select>
       </div>
 
@@ -92,7 +92,7 @@
           <option value="asc"  {% if order=='asc'  %}selected{% endif %}>↑ Asc</option>
         </select>
         <button type="submit" class="btn btn-primary btn-sm flex-fill">
-          <i class="bi bi-funnel me-1"></i>Filter
+          <i class="bi bi-funnel me-1"></i><span data-i18n="btn_filter">Filter</span>
         </button>
       </div>
     </div>
@@ -106,24 +106,24 @@
 <div id="bulk-bar" class="glass p-2 mb-3 d-none" style="border-color:#6f42c1">
   <div class="d-flex align-items-center gap-2 flex-wrap">
     <span class="text-warning fw-semibold" style="font-size:.85rem">
-      <i class="bi bi-check2-square me-1"></i><span id="selected-count">0</span> selected
+      <i class="bi bi-check2-square me-1"></i><span id="selected-count">0</span> <span data-i18n="lbl_selected">selected</span>
     </span>
     <div class="ms-auto d-flex gap-2 flex-wrap align-items-center">
       <button type="button" class="btn btn-sm btn-outline-warning" onclick="bulkAction('reset_streak')">
-        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
+        <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="btn_reset_streak">Reset Streak</span>
       </button>
       <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAction('clear_game_id')">
-        <i class="bi bi-x-circle me-1"></i>Clear Game ID
+        <i class="bi bi-x-circle me-1"></i><span data-i18n="btn_clear_game_id">Clear Game ID</span>
       </button>
       <div class="d-flex gap-1 align-items-center">
         <input type="number" id="bulk-points-delta" class="form-control form-control-sm"
                style="width:80px" placeholder="pts" value="0">
         <button type="button" class="btn btn-sm btn-outline-success" onclick="bulkAction('add_points')">
-          <i class="bi bi-coin me-1"></i>Add Points
+          <i class="bi bi-coin me-1"></i><span data-i18n="btn_add_points">Add Points</span>
         </button>
       </div>
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
-        <i class="bi bi-x"></i> Deselect All
+        <i class="bi bi-x"></i> <span data-i18n="btn_deselect_all">Deselect All</span>
       </button>
     </div>
   </div>
@@ -134,13 +134,13 @@
 <div class="glass">
   <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center">
     <span class="text-muted" style="font-size:.8rem">
-      Showing <strong class="text-light">{{ users | length }}</strong> of
-      <strong class="text-light">{{ total_count }}</strong> users
-      (page {{ page }}/{{ total_pages }})
+      <span data-i18n="lbl_showing">Showing</span> <strong class="text-light">{{ users | length }}</strong> <span data-i18n="lbl_of">of</span>
+      <strong class="text-light">{{ total_count }}</strong> <span data-i18n="lbl_users">users</span>
+      (<span data-i18n="lbl_page">page</span> {{ page }}/{{ total_pages }})
     </span>
     <label class="d-flex align-items-center gap-2 text-muted mb-0" style="font-size:.8rem;cursor:pointer">
       <input type="checkbox" id="select-all-top" class="form-check-input mt-0">
-      <span>Select all</span>
+      <span data-i18n="lbl_select_all">Select all</span>
     </label>
   </div>
 
@@ -151,13 +151,13 @@
           <th style="width:36px;padding-right:0">
             <input type="checkbox" id="select-all-header" class="form-check-input">
           </th>
-          <th>User</th>
-          <th>Game ID</th>
+          <th data-i18n="col_user">User</th>
+          <th data-i18n="col_game_id">Game ID</th>
           <th>
             <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='streak',
                         order=('asc' if sort=='streak' and order=='desc' else 'desc')) }}"
                class="sort-link">
-              Streak
+              <span data-i18n="col_streak">Streak</span>
               {% if sort=='streak' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
             </a>
           </th>
@@ -165,7 +165,7 @@
             <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='total_checkin',
                         order=('asc' if sort=='total_checkin' and order=='desc' else 'desc')) }}"
                class="sort-link">
-              Check-ins
+              <span data-i18n="col_checkins">Check-ins</span>
               {% if sort=='total_checkin' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
             </a>
           </th>
@@ -173,20 +173,20 @@
             <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='points',
                         order=('asc' if sort=='points' and order=='desc' else 'desc')) }}"
                class="sort-link">
-              Points
+              <span data-i18n="col_pts">Points</span>
               {% if sort=='points' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
             </a>
           </th>
-          <th>Refs</th>
+          <th data-i18n="col_refs">Refs</th>
           <th>
             <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='last_checkin',
                         order=('asc' if sort=='last_checkin' and order=='desc' else 'desc')) }}"
                class="sort-link">
-              Last Active
+              <span data-i18n="col_last_active">Last Active</span>
               {% if sort=='last_checkin' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
             </a>
           </th>
-          <th>Segment</th>
+          <th data-i18n="col_segment">Segment</th>
           <th></th>
         </tr>
       </thead>
@@ -257,7 +257,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-center text-muted py-4">No users found</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4" data-i18n="lbl_no_users">No users found</td></tr>
         {% endfor %}
       </tbody>
     </table>

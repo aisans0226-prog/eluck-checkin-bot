@@ -4,9 +4,9 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">🔗 Links &amp; Telegram Mini App</h5>
+  <h5 class="fw-bold mb-0" data-i18n="page_links">🔗 Links &amp; Telegram Mini App</h5>
   <span class="text-muted" style="font-size:.78rem">
-    <i class="bi bi-info-circle me-1"></i>Changes apply on next user interaction with bot
+    <i class="bi bi-info-circle me-1"></i><span data-i18n="links_hint">Changes apply on next user interaction with bot</span>
   </span>
 </div>
 
@@ -16,7 +16,7 @@
     <!-- URL Links -->
     <div class="col-lg-7">
       <div class="glass p-4 h-100">
-        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-link-45deg me-2"></i>Button URLs</h6>
+        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-link-45deg me-2"></i><span data-i18n="section_button_urls">Button URLs</span></h6>
 
         {% set link_fields = [
           ('PLAY_URL',      '🎮 Play URL',       'https://example.com/play',     'URL for the Play button on main menu'),
@@ -41,7 +41,7 @@
     <!-- Mini App Toggles -->
     <div class="col-lg-5">
       <div class="glass p-4">
-        <h6 class="fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-phone me-2"></i>Telegram Mini App Mode</h6>
+        <h6 class="fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-phone me-2"></i><span data-i18n="section_mini_app">Telegram Mini App Mode</span></h6>
         <p style="font-size:.78rem;color:#94a3b8;margin-bottom:1.5rem">
           Enable Mini App mode to open the link <strong>inside Telegram</strong> as a native app,
           instead of opening in the external browser.<br>
@@ -96,7 +96,7 @@
 
       <!-- Preview -->
       <div class="glass p-4 mt-3">
-        <h6 class="fw-semibold mb-3" style="font-size:.85rem"><i class="bi bi-eye me-2"></i>Preview</h6>
+        <h6 class="fw-semibold mb-3" style="font-size:.85rem"><i class="bi bi-eye me-2"></i><span data-i18n="section_preview">Preview</span></h6>
         <div style="font-size:.78rem;color:#94a3b8">
           <div class="d-flex align-items-center mb-2">
             <span class="badge me-2" id="badgePlay"
@@ -139,7 +139,7 @@
 
   <div class="d-flex justify-content-end mt-4">
     <button type="submit" class="btn btn-purple px-5">
-      <i class="bi bi-check-lg me-1"></i> Save Configuration
+      <i class="bi bi-check-lg me-1"></i> <span data-i18n="btn_save_links">Save Configuration</span>
     </button>
   </div>
 </form>

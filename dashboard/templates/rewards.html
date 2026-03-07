@@ -4,9 +4,9 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">💰 Reward Configuration</h5>
+  <h5 class="fw-bold mb-0" data-i18n="page_rewards">💰 Reward Configuration</h5>
   <span class="text-muted" style="font-size:.78rem">
-    <i class="bi bi-info-circle me-1"></i>Changes apply to new check-ins immediately
+    <i class="bi bi-info-circle me-1"></i><span data-i18n="rewards_hint">Changes apply to new check-ins immediately</span>
   </span>
 </div>
 
@@ -16,11 +16,11 @@
     <!-- Basic rewards -->
     <div class="col-lg-6">
       <div class="glass p-4 h-100">
-        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-coin me-2"></i>Base Rewards</h6>
+        <h6 class="text-purple fw-semibold mb-4"><i class="bi bi-coin me-2"></i><span data-i18n="section_base_rewards">Base Rewards</span></h6>
 
         <div class="mb-4">
           <label class="form-label fw-semibold">
-            ✅ Points per Check-in
+            <span data-i18n="lbl_pts_per_checkin">✅ Points per Check-in</span>
             <span class="badge bg-purple-soft text-purple ms-2">{{ cfg.POINTS_PER_CHECKIN }} pts</span>
           </label>
           <input type="range" class="form-range mb-1" name="POINTS_PER_CHECKIN"
@@ -31,12 +31,12 @@
             <strong id="valCheckin" class="text-yellow-400" style="color:#fbbf24">{{ cfg.POINTS_PER_CHECKIN }}</strong>
             <span style="font-size:.7rem;color:#64748b">100</span>
           </div>
-          <div style="font-size:.7rem;color:#64748b;margin-top:2px">Points earned each time a user checks in</div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:2px" data-i18n="hint_pts_checkin">Points earned each time a user checks in</div>
         </div>
 
         <div class="mb-4">
           <label class="form-label fw-semibold">
-            🔗 Referral Reward
+            <span data-i18n="lbl_referral_reward">🔗 Referral Reward</span>
             <span class="badge bg-purple-soft text-purple ms-2">{{ cfg.REFERRAL_REWARD }} pts</span>
           </label>
           <input type="range" class="form-range mb-1" name="REFERRAL_REWARD"
@@ -47,17 +47,17 @@
             <strong id="valReferral" style="color:#fbbf24">{{ cfg.REFERRAL_REWARD }}</strong>
             <span style="font-size:.7rem;color:#64748b">500</span>
           </div>
-          <div style="font-size:.7rem;color:#64748b;margin-top:2px">Points awarded to referrer per new user joined</div>
+          <div style="font-size:.7rem;color:#64748b;margin-top:2px" data-i18n="hint_referral">Points awarded to referrer per new user joined</div>
         </div>
 
         <div class="row g-2">
           <div class="col-6">
-            <label class="form-label mb-1" style="font-size:.78rem">🏆 Leaderboard Size</label>
+            <label class="form-label mb-1" style="font-size:.78rem" data-i18n="lbl_leaderboard_size">🏆 Leaderboard Size</label>
             <input type="number" name="LEADERBOARD_SIZE" class="form-control form-control-sm"
               value="{{ cfg.LEADERBOARD_SIZE }}" min="5" max="100">
           </div>
           <div class="col-6">
-            <label class="form-label mb-1" style="font-size:.78rem">⏰ Reminder Hour (UTC)</label>
+            <label class="form-label mb-1" style="font-size:.78rem" data-i18n="lbl_reminder_hour">⏰ Reminder Hour (UTC)</label>
             <input type="number" name="STREAK_REMINDER_HOUR" class="form-control form-control-sm"
               value="{{ cfg.STREAK_REMINDER_HOUR }}" min="0" max="23">
           </div>
@@ -68,7 +68,7 @@
     <!-- Streak milestones -->
     <div class="col-lg-6">
       <div class="glass p-4 h-100">
-        <h6 class="text-orange fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-fire me-2"></i>Streak Milestone Bonuses</h6>
+        <h6 class="text-orange fw-semibold mb-4" style="color:#fb923c"><i class="bi bi-fire me-2"></i><span data-i18n="section_streak_bonuses">Streak Milestone Bonuses</span></h6>
 
         {% set milestones = [
           ('STREAK_7_REWARD',   '7',  '🔥 7-Day Streak',   cfg.STREAK_7_REWARD,   500),
@@ -100,7 +100,7 @@
       <div class="glass p-3" style="border-color:rgba(111,66,193,.3)">
         <div class="row align-items-center">
           <div class="col-md-8">
-            <h6 class="text-purple mb-1">👁 Reward Preview</h6>
+            <h6 class="text-purple mb-1" data-i18n="section_reward_preview">👁 Reward Preview</h6>
             <p class="text-muted mb-0" style="font-size:.82rem">
               User checks in daily: earns <strong id="previewDaily" class="text-success">{{ cfg.POINTS_PER_CHECKIN }}</strong> pts/day.
               At 7-day streak: bonus <strong id="preview7" class="text-warning">{{ cfg.STREAK_7_REWARD }}</strong> pts.
@@ -109,7 +109,7 @@
           </div>
           <div class="col-md-4 text-end">
             <button type="submit" class="btn btn-primary px-4">
-              <i class="bi bi-floppy me-2"></i>Save Configuration
+              <i class="bi bi-floppy me-2"></i><span data-i18n="btn_save_config">Save Configuration</span>
             </button>
           </div>
         </div>

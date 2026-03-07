@@ -3,11 +3,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h4 class="mb-1"><i class="bi bi-shield-lock-fill me-2 text-warning"></i>Admin Accounts</h4>
-    <small class="text-muted">Manage dashboard users and permissions</small>
+    <h4 class="mb-1" data-i18n="page_admins"><i class="bi bi-shield-lock-fill me-2 text-warning"></i>Admin Accounts</h4>
+    <small class="text-muted" data-i18n="admins_subtitle">Manage dashboard users and permissions</small>
   </div>
   <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAdminModal">
-    <i class="bi bi-person-plus-fill me-1"></i>Add Account
+    <i class="bi bi-person-plus-fill me-1"></i><span data-i18n="btn_add_account">Add Account</span>
   </button>
 </div>
 
@@ -17,13 +17,13 @@
     <table class="table table-dark table-hover align-middle mb-0">
       <thead class="border-secondary">
         <tr>
-          <th>Username</th>
-          <th>Role</th>
-          <th>Permissions</th>
-          <th>Status</th>
-          <th>Created by</th>
-          <th>Last login</th>
-          <th class="text-end">Actions</th>
+          <th data-i18n="col_username">Username</th>
+          <th data-i18n="col_role">Role</th>
+          <th data-i18n="col_permissions">Permissions</th>
+          <th data-i18n="col_status">Status</th>
+          <th data-i18n="col_created_by">Created by</th>
+          <th data-i18n="col_last_login">Last login</th>
+          <th class="text-end" data-i18n="col_actions">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -45,7 +45,7 @@
           </td>
           <td>
             {% if a.role == 'super_admin' %}
-              <span class="text-muted small">All permissions</span>
+              <span class="text-muted small" data-i18n="lbl_all_perms">All permissions</span>
             {% else %}
               {% for p in all_perms %}
                 {% if a.permissions.get(p) %}
@@ -96,7 +96,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="text-center text-muted py-4">No admin accounts found.</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4" data-i18n="lbl_no_admins">No admin accounts found.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -120,7 +120,7 @@
           <!-- Role (can't edit your own role) -->
           {% if a.username != session.get('username') %}
           <div class="mb-3">
-            <label class="form-label">Role</label>
+            <label class="form-label" data-i18n="col_role">Role</label>
             <select name="role" class="form-select bg-dark text-light border-secondary role-select"
               data-target="perms-{{ a.id }}">
               <option value="admin" {% if a.role == 'admin' %}selected{% endif %}>Admin</option>
@@ -131,7 +131,7 @@
 
           <!-- Permissions (only for admin role) -->
           <div id="perms-{{ a.id }}" {% if a.role == 'super_admin' %}style="display:none"{% endif %}>
-            <label class="form-label">Permissions</label>
+            <label class="form-label" data-i18n="col_permissions">Permissions</label>
             <div class="row g-2">
               {% for p in all_perms %}
               <div class="col-6">
@@ -148,14 +148,14 @@
           <!-- New password -->
           <hr class="border-secondary my-3">
           <div class="mb-1">
-            <label class="form-label">New Password <small class="text-muted">(leave blank to keep current)</small></label>
+            <label class="form-label"><span data-i18n="lbl_new_password">New Password</span> <small class="text-muted" data-i18n="lbl_keep_password">(leave blank to keep current)</small></label>
             <input type="password" name="new_password" class="form-control bg-dark text-light border-secondary"
               placeholder="Min 6 characters" autocomplete="new-password">
           </div>
         </div>
         <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-i18n="btn_cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><span data-i18n="btn_save">Save Changes</span></button>
         </div>
       </form>
     </div>
@@ -171,22 +171,22 @@
     <div class="modal-content bg-dark border-secondary">
       <form method="POST" action="/admin-accounts/add">
         <div class="modal-header border-secondary">
-          <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2 text-success"></i>New Admin Account</h5>
+          <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2 text-success"></i><span data-i18n="modal_new_admin">New Admin Account</span></h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Username</label>
+            <label class="form-label" data-i18n="col_username">Username</label>
             <input type="text" name="username" class="form-control bg-dark text-light border-secondary"
               placeholder="e.g. moderator1" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Password</label>
+            <label class="form-label" data-i18n="lbl_password">Password</label>
             <input type="password" name="password" class="form-control bg-dark text-light border-secondary"
               placeholder="Min 6 characters" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Role</label>
+            <label class="form-label" data-i18n="col_role">Role</label>
             <select name="role" class="form-select bg-dark text-light border-secondary role-select"
               data-target="new-perms">
               <option value="admin" selected>Admin</option>
@@ -194,7 +194,7 @@
             </select>
           </div>
           <div id="new-perms">
-            <label class="form-label">Permissions</label>
+            <label class="form-label" data-i18n="col_permissions">Permissions</label>
             <div class="row g-2">
               {% for p in all_perms %}
               <div class="col-6">
@@ -209,9 +209,9 @@
           </div>
         </div>
         <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-i18n="btn_cancel">Cancel</button>
           <button type="submit" class="btn btn-success btn-sm">
-            <i class="bi bi-person-plus-fill me-1"></i>Create Account
+            <i class="bi bi-person-plus-fill me-1"></i><span data-i18n="btn_create_account">Create Account</span>
           </button>
         </div>
       </form>

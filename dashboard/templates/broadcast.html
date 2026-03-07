@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">📢 Broadcast Message</h5>
+  <h5 class="fw-bold mb-0" data-i18n="page_broadcast">📢 Broadcast Message</h5>
 </div>
 
 <!-- ── Tabs ──────────────────────────────────────────────── -->
@@ -13,14 +13,14 @@
     <button class="nav-link active" id="tab-compose-btn"
       data-bs-toggle="tab" data-bs-target="#tab-compose"
       type="button" role="tab">
-      ✉️ Compose
+      <span data-i18n="tab_compose">✉️ Compose</span>
     </button>
   </li>
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="tab-queue-btn"
       data-bs-toggle="tab" data-bs-target="#tab-queue"
       type="button" role="tab">
-      📅 Scheduled Queue
+      <span data-i18n="tab_scheduled_queue">📅 Scheduled Queue</span>
       {% if pending_count > 0 %}
         <span class="badge bg-warning text-dark ms-1">{{ pending_count }}</span>
       {% endif %}
@@ -49,13 +49,13 @@
 
             <!-- ── Target Audience ─────────────────────────────── -->
             <div class="mb-4">
-              <label class="form-label fw-semibold">Target Audience</label>
+              <label class="form-label fw-semibold" data-i18n="lbl_target_audience">Target Audience</label>
               <div class="row g-2">
                 <div class="col-3">
                   <input type="radio" class="btn-check" name="target" id="t_all" value="all" checked onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_all" style="font-size:.8rem">
                     <div style="font-size:1.4rem">👥</div>
-                    <div class="fw-bold">All Users</div>
+                    <div class="fw-bold" data-i18n="target_all_users">All Users</div>
                     <div class="text-muted" style="font-size:.7rem">{{ total_users }}</div>
                   </label>
                 </div>
@@ -63,7 +63,7 @@
                   <input type="radio" class="btn-check" name="target" id="t_active" value="active" onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_active" style="font-size:.8rem">
                     <div style="font-size:1.4rem">🔥</div>
-                    <div class="fw-bold">Active (7d)</div>
+                    <div class="fw-bold" data-i18n="target_active_7d">Active (7d)</div>
                     <div class="text-muted" style="font-size:.7rem">{{ active_7d }}</div>
                   </label>
                 </div>
@@ -71,7 +71,7 @@
                   <input type="radio" class="btn-check" name="target" id="t_game" value="game_id" onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_game" style="font-size:.8rem">
                     <div style="font-size:1.4rem">🎮</div>
-                    <div class="fw-bold">With Game ID</div>
+                    <div class="fw-bold" data-i18n="target_with_game">With Game ID</div>
                     <div class="text-muted" style="font-size:.7rem">{{ game_id_count }}</div>
                   </label>
                 </div>
@@ -79,8 +79,8 @@
                   <input type="radio" class="btn-check" name="target" id="t_specific" value="specific_ids" onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_specific" style="font-size:.8rem">
                     <div style="font-size:1.4rem">🎯</div>
-                    <div class="fw-bold">Specific IDs</div>
-                    <div class="text-muted" style="font-size:.7rem">Choose IDs</div>
+                    <div class="fw-bold" data-i18n="target_specific">Specific IDs</div>
+                    <div class="text-muted" style="font-size:.7rem" data-i18n="lbl_choose_ids">Choose IDs</div>
                   </label>
                 </div>
               </div>
@@ -302,11 +302,11 @@
               <div class="d-flex flex-wrap gap-2 mb-3">
                 <input type="radio" class="btn-check" name="send_mode" id="modeNow" value="now" checked onchange="updateMode()">
                 <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeNow" style="font-size:.8rem">
-                  <i class="bi bi-send me-1"></i>⚡ Send Now
+                  <i class="bi bi-send me-1"></i><span data-i18n="lbl_send_now">⚡ Send Now</span>
                 </label>
                 <input type="radio" class="btn-check" name="send_mode" id="modeSchedule" value="schedule" onchange="updateMode()">
                 <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeSchedule" style="font-size:.8rem">
-                  <i class="bi bi-clock me-1"></i>📅 Schedule for Later
+                  <i class="bi bi-clock me-1"></i><span data-i18n="lbl_schedule">📅 Schedule for Later</span>
                 </label>
                 <input type="radio" class="btn-check" name="send_mode" id="modeBatch" value="batch" onchange="updateMode()">
                 <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeBatch" style="font-size:.8rem">
@@ -353,11 +353,11 @@
               </button>
               <!-- Send Now button (mode = now) -->
               <button type="submit" id="btnSendNow" class="btn btn-primary px-4">
-                <i class="bi bi-send-fill me-2"></i>Send Broadcast
+                <i class="bi bi-send-fill me-2"></i><span data-i18n="btn_send">Send Broadcast</span>
               </button>
               <!-- Schedule button (mode = schedule) -->
               <button type="submit" id="btnScheduleSingle" class="btn btn-indigo px-4" style="display:none">
-                <i class="bi bi-clock me-2"></i>Schedule Broadcast
+                <i class="bi bi-clock me-2"></i><span data-i18n="btn_schedule">Schedule Broadcast</span>
               </button>
               <!-- Add to Batch (mode = batch) -->
               <button type="button" id="btnAddBatch" class="btn btn-teal px-4" style="display:none"
@@ -455,14 +455,14 @@
           <thead style="font-size:.78rem;color:#94a3b8">
             <tr>
               <th>#</th>
-              <th>Scheduled (UTC)</th>
+              <th data-i18n="col_scheduled_at">Scheduled (UTC)</th>
               <th>Timezone</th>
-              <th>Target</th>
-              <th style="min-width:180px">Message</th>
+              <th data-i18n="col_audience">Target</th>
+              <th style="min-width:180px" data-i18n="col_message_prev">Message</th>
               <th>Status</th>
               <th>Results</th>
-              <th>By</th>
-              <th style="min-width:90px">Actions</th>
+              <th data-i18n="col_created_by">By</th>
+              <th style="min-width:90px" data-i18n="col_actions">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -501,7 +501,7 @@
                     style="display:inline"
                     onsubmit="return confirm('Cancel this scheduled broadcast?')">
                     <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2"
-                      style="font-size:.75rem">Cancel</button>
+                      style="font-size:.75rem"><span data-i18n="btn_cancel_job">Cancel</span></button>
                   </form>
                 {% else %}
                   <form method="POST" action="/broadcast/schedule/delete/{{ bc.id }}"
@@ -520,7 +520,7 @@
       {% else %}
       <div class="text-center text-muted py-5">
         <i class="bi bi-calendar-x" style="font-size:2.5rem;opacity:.35"></i>
-        <div class="mt-2">No scheduled broadcasts yet.</div>
+        <div class="mt-2" data-i18n="lbl_no_scheduled">No scheduled broadcasts yet.</div>
         <div style="font-size:.8rem">Go to the <strong>Compose</strong> tab and choose "Schedule for Later" or "Batch Schedule".</div>
       </div>
       {% endif %}

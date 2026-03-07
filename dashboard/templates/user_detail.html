@@ -64,38 +64,38 @@
       <hr class="border-secondary my-2">
 
       <dl class="mb-0 flex-grow-1" style="font-size:.82rem">
-        <dt class="text-muted mb-1">Game ID</dt>
+        <dt class="text-muted mb-1" data-i18n="col_game_id">Game ID</dt>
         <dd class="mb-2">
           {% if user.game_id %}<code class="text-purple">{{ user.game_id }}</code>
-          {% else %}<span class="text-muted">Not set</span>{% endif %}
+          {% else %}<span class="text-muted" data-i18n="lbl_not_set">Not set</span>{% endif %}
         </dd>
 
-        <dt class="text-muted mb-1">Language / Timezone</dt>
+        <dt class="text-muted mb-1" data-i18n="lbl_lang_tz">Language / Timezone</dt>
         <dd class="mb-2">
           <span class="badge bg-secondary bg-opacity-25 text-muted">{{ user.language | upper }}</span>
           <span class="text-muted ms-1" style="font-size:.72rem">{{ user.timezone or 'UTC' }}</span>
         </dd>
 
-        <dt class="text-muted mb-1">Registered</dt>
+        <dt class="text-muted mb-1" data-i18n="lbl_registered">Registered</dt>
         <dd class="mb-2">
           {{ user.register_date.strftime('%Y-%m-%d') }}
           <span class="text-muted" style="font-size:.72rem">({{ days_since_register }}d ago)</span>
         </dd>
 
-        <dt class="text-muted mb-1">Last Check-in</dt>
+        <dt class="text-muted mb-1" data-i18n="lbl_last_checkin">Last Check-in</dt>
         <dd class="mb-2">
           {% if user.last_checkin %}
             {{ user.last_checkin }}
             <span class="text-{{ 'danger' if days_inactive > 7 else ('warning' if days_inactive > 3 else 'success') }}"
                   style="font-size:.72rem">({{ days_inactive }}d ago)</span>
-          {% else %}<span class="text-muted">Never</span>{% endif %}
+          {% else %}<span class="text-muted" data-i18n="lbl_never">Never</span>{% endif %}
         </dd>
 
-        <dt class="text-muted mb-1">Streak Freeze</dt>
-        <dd class="mb-2">{{ user.streak_freeze_used }} used this month</dd>
+        <dt class="text-muted mb-1" data-i18n="lbl_streak_freeze">Streak Freeze</dt>
+        <dd class="mb-2">{{ user.streak_freeze_used }} <span data-i18n="lbl_used_this_month">used this month</span></dd>
 
         {% if referred_by %}
-        <dt class="text-muted mb-1">Referred By</dt>
+        <dt class="text-muted mb-1" data-i18n="lbl_referred_by">Referred By</dt>
         <dd class="mb-0">
           <a href="/users/{{ referred_by.telegram_id }}" class="text-purple text-decoration-none">
             {{ referred_by.display_name }}
@@ -114,37 +114,37 @@
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val text-warning">🔥{{ user.streak }}</div>
-          <div class="kpi-lbl">Streak</div>
+          <div class="kpi-lbl" data-i18n="kpi_streak">Streak</div>
         </div>
       </div>
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val" style="color:#fb923c">{{ longest_streak }}</div>
-          <div class="kpi-lbl">Best Streak</div>
+          <div class="kpi-lbl" data-i18n="kpi_best_streak">Best Streak</div>
         </div>
       </div>
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val text-success">{{ user.total_checkin }}</div>
-          <div class="kpi-lbl">Check-ins</div>
+          <div class="kpi-lbl" data-i18n="kpi_checkins">Check-ins</div>
         </div>
       </div>
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val text-purple">{{ "{:,}".format(user.points) }}</div>
-          <div class="kpi-lbl">Points</div>
+          <div class="kpi-lbl" data-i18n="kpi_points">Points</div>
         </div>
       </div>
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val text-info">{{ consistency_pct }}%</div>
-          <div class="kpi-lbl">Consistency</div>
+          <div class="kpi-lbl" data-i18n="kpi_consistency">Consistency</div>
         </div>
       </div>
       <div class="col-4 col-md-2">
         <div class="kpi-card text-center">
           <div class="kpi-val" style="color:#c084fc">{{ user.referral_count }}</div>
-          <div class="kpi-lbl">Referrals</div>
+          <div class="kpi-lbl" data-i18n="kpi_referrals">Referrals</div>
         </div>
       </div>
     </div>
@@ -154,7 +154,7 @@
       <div class="col-6 col-md-3">
         <div class="kpi-card text-center">
           <div class="kpi-val" style="font-size:1.1rem;color:#38bdf8">{{ avg_pts_per_day }}</div>
-          <div class="kpi-lbl">Avg Pts / Day</div>
+          <div class="kpi-lbl" data-i18n="kpi_avg_pts">Avg Pts / Day</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
@@ -163,20 +163,20 @@
             color:{{ '#f87171' if days_inactive > 7 else ('#fb923c' if days_inactive > 3 else '#4ade80') }}">
             {{ days_inactive }}d
           </div>
-          <div class="kpi-lbl">Days Inactive</div>
+          <div class="kpi-lbl" data-i18n="kpi_days_inactive">Days Inactive</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card text-center">
           <div class="kpi-val" style="font-size:1.1rem">{{ completed_tasks }}/{{ total_tasks }}</div>
-          <div class="kpi-lbl">Tasks Done</div>
+          <div class="kpi-lbl" data-i18n="kpi_tasks_done">Tasks Done</div>
         </div>
       </div>
       <!-- Churn Risk card -->
       <div class="col-6 col-md-3">
         <div class="kpi-card">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="kpi-lbl">Churn Risk</span>
+            <span class="kpi-lbl" data-i18n="kpi_churn_risk">Churn Risk</span>
             <span class="badge
               {% if churn.risk == 'high' %}bg-danger text-danger
               {% elif churn.risk == 'medium' %}bg-warning text-warning
@@ -199,15 +199,16 @@
 
     <!-- Quick Actions -->
     <div class="glass p-3">
-      <div class="fw-semibold mb-2" style="font-size:.8rem;color:#a78bfa">⚡ Quick Actions</div>
+      <div class="fw-semibold mb-2" style="font-size:.8rem;color:#a78bfa" data-i18n="section_quick_actions">⚡ Quick Actions</div>
       <div class="row g-2">
         <div class="col-12 col-sm-4">
           <form method="POST">
             <input type="hidden" name="action" value="update">
             <div class="input-group input-group-sm">
               <input type="text" name="game_id" class="form-control" placeholder="New Game ID"
+                     data-i18n-placeholder="placeholder_game_id"
                      value="{{ user.game_id or '' }}">
-              <button type="submit" class="btn btn-primary">Save ID</button>
+              <button type="submit" class="btn btn-primary" data-i18n="btn_save_id">Save ID</button>
             </div>
           </form>
         </div>
@@ -216,7 +217,7 @@
             <input type="hidden" name="action" value="add_points">
             <div class="input-group input-group-sm">
               <input type="number" name="delta" class="form-control" placeholder="+100 or -50">
-              <button type="submit" class="btn btn-success">Apply Pts</button>
+              <button type="submit" class="btn btn-success" data-i18n="btn_apply_pts">Apply Pts</button>
             </div>
           </form>
         </div>
@@ -226,7 +227,7 @@
             <div class="input-group input-group-sm">
               <input type="number" name="streak" class="form-control" min="0"
                      placeholder="Streak" value="{{ user.streak }}">
-              <button type="submit" class="btn btn-warning text-dark">Set Streak</button>
+              <button type="submit" class="btn btn-warning text-dark" data-i18n="btn_set_streak">Set Streak</button>
             </div>
           </form>
         </div>
@@ -235,19 +236,19 @@
         <form method="POST" onsubmit="return confirm('Reset streak to 0?')">
           <input type="hidden" name="action" value="reset_streak">
           <button type="submit" class="btn btn-sm btn-outline-warning">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
+            <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="btn_reset_streak">Reset Streak</span>
           </button>
         </form>
         <form method="POST" onsubmit="return confirm('Ban this user? This will clear game ID and reset streak.')">
           <input type="hidden" name="action" value="ban_user">
           <button type="submit" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-slash-circle me-1"></i>Ban User
+            <i class="bi bi-slash-circle me-1"></i><span data-i18n="btn_ban_user">Ban User</span>
           </button>
         </form>
         {% if user.game_id %}
         <a href="/broadcast?target=game_id&target_game_ids={{ user.game_id }}"
            class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-megaphone me-1"></i>Send Message
+          <i class="bi bi-megaphone me-1"></i><span data-i18n="btn_send_msg">Send Message</span>
         </a>
         {% endif %}
       </div>
@@ -258,15 +259,15 @@
 <!-- ═══ ROW 2: Activity Heatmap ═══ -->
 <div class="glass p-3 mb-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="fw-semibold mb-0">📅 Check-in Activity (last 52 weeks)</h6>
+    <h6 class="fw-semibold mb-0" data-i18n="section_heatmap">📅 Check-in Activity (last 52 weeks)</h6>
     <div class="d-flex align-items-center gap-2" style="font-size:.72rem;color:#64748b">
       <span>
         <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#1e1e38;vertical-align:middle"></span>
-        No check-in
+        <span data-i18n="lbl_no_checkin_cell">No check-in</span>
       </span>
       <span>
         <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#7c3aed;vertical-align:middle"></span>
-        Check-in
+        <span data-i18n="lbl_checkin_cell">Check-in</span>
       </span>
     </div>
   </div>
@@ -295,13 +296,13 @@
 <div class="row g-3 mb-3">
   <div class="col-md-6">
     <div class="glass p-3">
-      <h6 class="fw-semibold mb-3">📈 Streak Over Time <span style="font-size:.72rem;color:#64748b;font-weight:400">(last 90 entries)</span></h6>
+      <h6 class="fw-semibold mb-3"><span data-i18n="chart_streak_time">📈 Streak Over Time</span> <span style="font-size:.72rem;color:#64748b;font-weight:400">(<span data-i18n="lbl_last_90">last 90 entries</span>)</span></h6>
       <div class="chart-container"><canvas id="streakChart"></canvas></div>
     </div>
   </div>
   <div class="col-md-6">
     <div class="glass p-3">
-      <h6 class="fw-semibold mb-3">💰 Cumulative Points <span style="font-size:.72rem;color:#64748b;font-weight:400">(last 90 entries)</span></h6>
+      <h6 class="fw-semibold mb-3"><span data-i18n="chart_cum_points">💰 Cumulative Points</span> <span style="font-size:.72rem;color:#64748b;font-weight:400">(<span data-i18n="lbl_last_90">last 90 entries</span>)</span></h6>
       <div class="chart-container"><canvas id="pointsChart"></canvas></div>
     </div>
   </div>
@@ -311,25 +312,25 @@
 <div class="row g-2 mb-3">
   <div class="col-6 col-md-3">
     <div class="glass p-2 text-center">
-      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Most Used Feature</div>
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em" data-i18n="lbl_most_used">Most Used Feature</div>
       <div class="fw-semibold text-purple" style="font-size:.85rem">{{ behavior.most_used_feature or '—' }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="glass p-2 text-center">
-      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Peak Hour (UTC)</div>
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em" data-i18n="lbl_peak_hour">Peak Hour (UTC)</div>
       <div class="fw-semibold text-info" style="font-size:.85rem">{{ '%02d:00' % behavior.peak_hour }}</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="glass p-2 text-center">
-      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Engagement Score</div>
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em" data-i18n="lbl_engagement">Engagement Score</div>
       <div class="fw-semibold text-success" style="font-size:.85rem">{{ (behavior.engagement_score * 100) | int }}%</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="glass p-2 text-center">
-      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Total Events Logged</div>
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em" data-i18n="lbl_total_events_logged">Total Events Logged</div>
       <div class="fw-semibold" style="font-size:.85rem">{{ recent_events | length }}</div>
     </div>
   </div>
@@ -340,19 +341,19 @@
   <!-- Tab navigation -->
   <div class="p-3 border-bottom border-dark d-flex gap-2 flex-wrap">
     <button class="tab-btn active" onclick="showTab('tab-history', this)">
-      <i class="bi bi-calendar3 me-1"></i>Check-in History
+      <i class="bi bi-calendar3 me-1"></i><span data-i18n="tab_history">Check-in History</span>
       <span class="badge bg-secondary bg-opacity-50 ms-1">{{ history | length }}</span>
     </button>
     <button class="tab-btn" onclick="showTab('tab-tasks', this)">
-      <i class="bi bi-list-check me-1"></i>Tasks
+      <i class="bi bi-list-check me-1"></i><span data-i18n="tab_tasks">Tasks</span>
       <span class="badge bg-secondary bg-opacity-50 ms-1">{{ total_tasks }}</span>
     </button>
     <button class="tab-btn" onclick="showTab('tab-events', this)">
-      <i class="bi bi-activity me-1"></i>Event Log
+      <i class="bi bi-activity me-1"></i><span data-i18n="tab_events">Event Log</span>
       <span class="badge bg-secondary bg-opacity-50 ms-1">{{ recent_events | length }}</span>
     </button>
     <button class="tab-btn" onclick="showTab('tab-referrals', this)">
-      <i class="bi bi-diagram-3 me-1"></i>Referrals
+      <i class="bi bi-diagram-3 me-1"></i><span data-i18n="tab_referrals">Referrals</span>
       <span class="badge bg-secondary bg-opacity-50 ms-1">{{ referrals | length }}</span>
     </button>
   </div>
@@ -364,10 +365,10 @@
       <table class="table table-sm mb-0">
         <thead>
           <tr>
-            <th>Date</th>
+            <th data-i18n="col_date">Date</th>
             <th>Day</th>
-            <th>Streak</th>
-            <th>Points Earned</th>
+            <th data-i18n="col_streak">Streak</th>
+            <th data-i18n="col_points_earned">Points Earned</th>
           </tr>
         </thead>
         <tbody>
@@ -383,7 +384,7 @@
       </table>
     </div>
     {% else %}
-    <p class="text-muted text-center py-4">No check-in history yet.</p>
+    <p class="text-muted text-center py-4" data-i18n="lbl_no_history">No check-in history yet.</p>
     {% endif %}
   </div>
 
@@ -394,11 +395,11 @@
       <table class="table table-sm mb-0">
         <thead>
           <tr>
-            <th>Task</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Points</th>
-            <th>Completed At</th>
+            <th data-i18n="col_task">Task</th>
+            <th data-i18n="col_type">Type</th>
+            <th data-i18n="col_status">Status</th>
+            <th data-i18n="col_pts">Points</th>
+            <th data-i18n="col_completed_at">Completed At</th>
           </tr>
         </thead>
         <tbody>
@@ -434,7 +435,7 @@
       </table>
     </div>
     {% else %}
-    <p class="text-muted text-center py-4">No task records yet.</p>
+    <p class="text-muted text-center py-4" data-i18n="lbl_no_task_records">No task records yet.</p>
     {% endif %}
   </div>
 
@@ -472,7 +473,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-muted text-center py-4">No events recorded yet.</p>
+    <p class="text-muted text-center py-4" data-i18n="lbl_no_events">No events recorded yet.</p>
     {% endif %}
   </div>
 
@@ -483,10 +484,10 @@
       <table class="table table-sm mb-0">
         <thead>
           <tr>
-            <th>Referred User</th>
-            <th>Game ID</th>
-            <th>Date</th>
-            <th>Points Earned</th>
+            <th data-i18n="col_referred_user">Referred User</th>
+            <th data-i18n="col_game_id">Game ID</th>
+            <th data-i18n="col_date">Date</th>
+            <th data-i18n="col_points_earned">Points Earned</th>
           </tr>
         </thead>
         <tbody>
@@ -506,7 +507,7 @@
       </table>
     </div>
     {% else %}
-    <p class="text-muted text-center py-4">This user has not referred anyone yet.</p>
+    <p class="text-muted text-center py-4" data-i18n="lbl_no_referrals">This user has not referred anyone yet.</p>
     {% endif %}
   </div>
 </div>

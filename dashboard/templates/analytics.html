@@ -5,15 +5,15 @@
 {% block content %}
 <!-- ── Filter bar ─────────────────────────────────────────── -->
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-  <h5 class="mb-0 fw-semibold text-purple">Behavior Analytics</h5>
+  <h5 class="mb-0 fw-semibold text-purple" data-i18n="page_analytics">Behavior Analytics</h5>
   <div class="d-flex align-items-center gap-2">
     {% if forecast.ai_powered %}
       <span class="badge bg-success bg-opacity-25 text-success" style="font-size:.7rem">
-        <i class="bi bi-cpu-fill me-1"></i>AI Powered
+        <i class="bi bi-cpu-fill me-1"></i><span data-i18n="badge_ai_powered">AI Powered</span>
       </span>
     {% else %}
       <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size:.7rem">
-        <i class="bi bi-bar-chart-fill me-1"></i>Rule-based
+        <i class="bi bi-bar-chart-fill me-1"></i><span data-i18n="badge_rule_based">Rule-based</span>
       </span>
     {% endif %}
     <form method="get" class="d-flex gap-1">
@@ -32,7 +32,7 @@
     <div class="stat-card">
       <div class="stat-icon bg-purple-soft"><i class="bi bi-activity text-purple"></i></div>
       <div class="stat-value">{{ total_events | format_number }}</div>
-      <div class="stat-label">Total Events</div>
+      <div class="stat-label" data-i18n="stat_total_events">Total Events</div>
       <div class="stat-change text-muted">Last {{ days }} days</div>
     </div>
   </div>
@@ -40,19 +40,19 @@
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(251,146,60,.15)"><i class="bi bi-people-fill" style="color:#fb923c"></i></div>
       <div class="stat-value">{{ unique_users | format_number }}</div>
-      <div class="stat-label">Active Users</div>
-      <div class="stat-change text-muted">Interacted with bot</div>
+      <div class="stat-label" data-i18n="stat_active_users">Active Users</div>
+      <div class="stat-change text-muted" data-i18n="lbl_interacted">Interacted with bot</div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(34,197,94,.15)"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i></div>
       <div class="stat-value">{{ funnel.success | format_number }}</div>
-      <div class="stat-label">Check-ins Done</div>
+      <div class="stat-label" data-i18n="stat_checkins_done">Check-ins Done</div>
       <div class="stat-change {% if funnel.started > 0 %}text-success{% else %}text-muted{% endif %}">
         {% if funnel.started > 0 %}
           {{ "%.0f"|format(funnel.success / funnel.started * 100) }}% completion rate
-        {% else %}No data yet{% endif %}
+        {% else %}<span data-i18n="stat_no_data">No data yet</span>{% endif %}
       </div>
     </div>
   </div>
@@ -60,7 +60,7 @@
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(99,179,237,.15)"><i class="bi bi-graph-up-arrow" style="color:#63b3ed"></i></div>
       <div class="stat-value">{{ forecast.predicted_tomorrow }}</div>
-      <div class="stat-label">Forecast Tomorrow</div>
+      <div class="stat-label" data-i18n="stat_forecast">Forecast Tomorrow</div>
       <div class="stat-change
         {% if forecast.trend == 'up' %}text-success
         {% elif forecast.trend == 'down' %}text-danger
@@ -77,7 +77,7 @@
   <div class="col-12 col-lg-8">
     <div class="glass p-3 h-100">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fw-semibold" style="font-size:.875rem">Daily Active Users</span>
+        <span class="fw-semibold" style="font-size:.875rem" data-i18n="chart_daily_active">Daily Active Users</span>
         <span class="text-muted" style="font-size:.75rem">Last {{ days }} days</span>
       </div>
       <div class="chart-container" style="height:200px">
@@ -89,7 +89,7 @@
   <!-- Hourly heatmap -->
   <div class="col-12 col-lg-4">
     <div class="glass p-3 h-100">
-      <div class="fw-semibold mb-3" style="font-size:.875rem">Peak Hours (UTC)</div>
+      <div class="fw-semibold mb-3" style="font-size:.875rem" data-i18n="chart_peak_hours">Peak Hours (UTC)</div>
       <div class="chart-container" style="height:200px">
         <canvas id="hourlyChart"></canvas>
       </div>
@@ -101,7 +101,7 @@
   <!-- Feature usage bar chart -->
   <div class="col-12 col-lg-7">
     <div class="glass p-3 h-100">
-      <div class="fw-semibold mb-3" style="font-size:.875rem">Feature Usage</div>
+      <div class="fw-semibold mb-3" style="font-size:.875rem" data-i18n="chart_feature_usage">Feature Usage</div>
       <div class="chart-container" style="height:240px">
         <canvas id="featureChart"></canvas>
       </div>
@@ -111,10 +111,10 @@
   <!-- Check-in funnel -->
   <div class="col-12 col-lg-5">
     <div class="glass p-3 h-100">
-      <div class="fw-semibold mb-3" style="font-size:.875rem">Check-in Funnel</div>
+      <div class="fw-semibold mb-3" style="font-size:.875rem" data-i18n="section_funnel">Check-in Funnel</div>
       <div class="mb-2" style="font-size:.8rem">
         <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Attempted</span>
+          <span class="text-muted" data-i18n="funnel_attempted">Attempted</span>
           <span class="fw-semibold">{{ funnel.started }}</span>
         </div>
         {% set w_started = 100 %}
@@ -123,7 +123,7 @@
         </div>
 
         <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Abandoned (no Game ID)</span>
+          <span class="text-muted" data-i18n="funnel_abandoned">Abandoned (no Game ID)</span>
           <span class="fw-semibold text-warning">{{ funnel.abandoned }}</span>
         </div>
         {% set w_abandon = (funnel.abandoned / funnel.started * 100) | int if funnel.started > 0 else 0 %}
@@ -132,7 +132,7 @@
         </div>
 
         <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Already checked in</span>
+          <span class="text-muted" data-i18n="funnel_already">Already checked in</span>
           <span class="fw-semibold text-info">{{ funnel.already }}</span>
         </div>
         {% set w_already = (funnel.already / funnel.started * 100) | int if funnel.started > 0 else 0 %}
@@ -141,7 +141,7 @@
         </div>
 
         <div class="d-flex justify-content-between mb-1">
-          <span class="text-muted">Success</span>
+          <span class="text-muted" data-i18n="funnel_success">Success</span>
           <span class="fw-semibold text-success">{{ funnel.success }}</span>
         </div>
         {% set w_success = (funnel.success / funnel.started * 100) | int if funnel.started > 0 else 0 %}
@@ -151,7 +151,7 @@
       </div>
 
       {% if funnel.started == 0 %}
-      <p class="text-muted text-center" style="font-size:.8rem">No check-in events yet. Data will appear after users interact with the bot.</p>
+      <p class="text-muted text-center" style="font-size:.8rem" data-i18n="lbl_no_risk_users">No check-in events yet. Data will appear after users interact with the bot.</p>
       {% endif %}
     </div>
   </div>
@@ -161,14 +161,14 @@
 <div class="glass p-3 mb-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <span class="fw-semibold" style="font-size:.875rem">Churn Risk Users</span>
+      <span class="fw-semibold" style="font-size:.875rem" data-i18n="section_churn">Churn Risk Users</span>
       {% if risk_users and risk_users[0].ai_powered %}
-        <span class="badge bg-success bg-opacity-25 text-success ms-2" style="font-size:.65rem">AI</span>
+        <span class="badge bg-success bg-opacity-25 text-success ms-2" style="font-size:.65rem" data-i18n="badge_ai">AI</span>
       {% else %}
-        <span class="badge bg-secondary bg-opacity-25 text-secondary ms-2" style="font-size:.65rem">Rule-based</span>
+        <span class="badge bg-secondary bg-opacity-25 text-secondary ms-2" style="font-size:.65rem" data-i18n="badge_rule">Rule-based</span>
       {% endif %}
     </div>
-    <span class="text-muted" style="font-size:.75rem">Top 10 at-risk users</span>
+    <span class="text-muted" style="font-size:.75rem" data-i18n="churn_top10">Top 10 at-risk users</span>
   </div>
 
   {% if risk_users %}
@@ -176,12 +176,12 @@
     <table class="table table-sm mb-0">
       <thead>
         <tr>
-          <th>User</th>
-          <th>Streak</th>
-          <th>Days Inactive</th>
-          <th>Risk</th>
-          <th>Score</th>
-          <th>Reason</th>
+          <th data-i18n="col_user">User</th>
+          <th data-i18n="col_streak">Streak</th>
+          <th data-i18n="col_days_inactive">Days Inactive</th>
+          <th data-i18n="col_risk">Risk</th>
+          <th data-i18n="col_score">Score</th>
+          <th data-i18n="col_reason">Reason</th>
         </tr>
       </thead>
       <tbody>
@@ -215,7 +215,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-muted text-center py-3" style="font-size:.85rem">
+  <p class="text-muted text-center py-3" style="font-size:.85rem" data-i18n="lbl_no_risk_users">
     No at-risk users found. Either no data yet, or all your users are healthy!
   </p>
   {% endif %}
