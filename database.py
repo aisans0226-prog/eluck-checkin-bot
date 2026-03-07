@@ -109,3 +109,17 @@ def _run_migrations(engine) -> None:
             pass
         except Exception as exc:
             logger.warning("Migration warning (users.language): %s", exc)
+
+        # Add 'target_game_ids' column to scheduled_broadcasts table (specific Game ID targeting)
+        try:
+            conn.execute(
+                sqlalchemy.text(
+                    "ALTER TABLE scheduled_broadcasts ADD COLUMN target_game_ids TEXT"
+                )
+            )
+            conn.commit()
+            logger.info("Migration applied: scheduled_broadcasts.target_game_ids column added")
+        except sqlalchemy.exc.OperationalError:
+            pass
+        except Exception as exc:
+            logger.warning("Migration warning (scheduled_broadcasts.target_game_ids): %s", exc)

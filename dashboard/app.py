@@ -203,6 +203,9 @@ def _execute_scheduled_broadcast(bc_id: int) -> None:
             users_list = db.query(User).filter(User.last_checkin >= week_ago).all()
         elif bc.target == "game_id":
             users_list = db.query(User).filter(User.game_id.isnot(None)).all()
+        elif bc.target == "specific_ids":
+            ids = [x.strip() for x in (bc.target_game_ids or "").replace("\n", ",").split(",") if x.strip()]
+            users_list = db.query(User).filter(User.game_id.in_(ids)).all() if ids else []
         else:
             users_list = db.query(User).all()
 
@@ -950,6 +953,7 @@ def broadcast():
         # ── POST ─────────────────────────────────────────────
         message_text     = request.form.get("message", "").strip()
         target           = request.form.get("target", "all")
+        target_game_ids  = request.form.get("target_game_ids", "").strip()
         scheduled_at_str = request.form.get("scheduled_at", "").strip()
         tz_name          = request.form.get("timezone", "UTC").strip()
 
@@ -962,6 +966,10 @@ def broadcast():
 
         if not message_text and not image_data:
             flash("Message cannot be empty.", "danger")
+            return redirect(url_for("broadcast"))
+
+        if target == "specific_ids" and not target_game_ids:
+            flash("Please enter at least one Game ID to target.", "danger")
             return redirect(url_for("broadcast"))
 
         # ── Scheduled send ────────────────────────────────────
@@ -989,6 +997,7 @@ def broadcast():
             bc = ScheduledBroadcast(
                 message_text=message_text,
                 target=target,
+                target_game_ids=target_game_ids if target == "specific_ids" else None,
                 image_filename=saved_img,
                 scheduled_at=utc_dt,
                 timezone_name=tz_name,
@@ -1010,6 +1019,9 @@ def broadcast():
             users_list = db.query(User).filter(User.last_checkin >= week_ago).all()
         elif target == "game_id":
             users_list = db.query(User).filter(User.game_id.isnot(None)).all()
+        elif target == "specific_ids":
+            ids = [x.strip() for x in target_game_ids.replace("\n", ",").split(",") if x.strip()]
+            users_list = db.query(User).filter(User.game_id.in_(ids)).all() if ids else []
         else:
             users_list = db.query(User).all()
 
@@ -1036,7 +1048,8 @@ def broadcast():
                 failed += 1
 
         has_img_note = " [+image]" if image_data else ""
-        log_action("broadcast", f"target:{target}", f"sent={sent} failed={failed}{has_img_note} msg={message_text[:80]!r}")
+        extra = f" ids={target_game_ids[:80]!r}" if target == "specific_ids" else ""
+        log_action("broadcast", f"target:{target}", f"sent={sent} failed={failed}{has_img_note}{extra} msg={message_text[:80]!r}")
         flash(f"Broadcast complete! Sent: {sent:,} | Failed: {failed:,}", "success")
         return redirect(url_for("broadcast"))
     finally:
@@ -1135,6 +1148,22 @@ def broadcast_batch():
     except Exception as exc:
         logger.error("broadcast_batch error: %s", exc, exc_info=True)
         return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/broadcast/game_ids", methods=["GET"])
+@permission_required("broadcast")
+def broadcast_game_ids():
+    """AJAX: return list of game_ids matching optional query string."""
+    q = request.args.get("q", "").strip()
+    db = db_session()
+    try:
+        query = db.query(User.game_id).filter(User.game_id.isnot(None))
+        if q:
+            query = query.filter(User.game_id.ilike(f"%{q}%"))
+        rows = query.order_by(User.game_id).limit(50).all()
+        return jsonify([r[0] for r in rows])
+    finally:
+        db.close()
 
 
 # ─────────────────────────────────────────────────────────────

@@ -14,6 +14,8 @@ class ScheduledBroadcast(Base):
     id:             Mapped[int]           = mapped_column(Integer, primary_key=True, autoincrement=True)
     message_text:   Mapped[str]           = mapped_column(Text, default="")
     target:         Mapped[str]           = mapped_column(String(16), default="all")
+    # comma-separated Game IDs when target == "specific_ids"
+    target_game_ids: Mapped[str | None]  = mapped_column(Text, nullable=True)
     # filename inside data/broadcast_images/ (None = no image)
     image_filename: Mapped[str | None]    = mapped_column(String(256), nullable=True)
     # scheduled_at stored as UTC naive datetime
@@ -35,6 +37,10 @@ class ScheduledBroadcast(Base):
     # ── Convenience properties used in templates ──────────────
     @property
     def target_label(self) -> str:
+        if self.target == "specific_ids":
+            ids = self.target_game_ids or ""
+            count = len([x for x in ids.split(",") if x.strip()])
+            return f"Specific IDs ({count})"
         return {
             "all":     "All Users",
             "active":  "Active (7d)",

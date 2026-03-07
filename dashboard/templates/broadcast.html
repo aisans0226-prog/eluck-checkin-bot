@@ -51,30 +51,85 @@
             <div class="mb-4">
               <label class="form-label fw-semibold">Target Audience</label>
               <div class="row g-2">
-                <div class="col-4">
-                  <input type="radio" class="btn-check" name="target" id="t_all" value="all" checked>
+                <div class="col-3">
+                  <input type="radio" class="btn-check" name="target" id="t_all" value="all" checked onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_all" style="font-size:.8rem">
                     <div style="font-size:1.4rem">👥</div>
                     <div class="fw-bold">All Users</div>
                     <div class="text-muted" style="font-size:.7rem">{{ total_users }}</div>
                   </label>
                 </div>
-                <div class="col-4">
-                  <input type="radio" class="btn-check" name="target" id="t_active" value="active">
+                <div class="col-3">
+                  <input type="radio" class="btn-check" name="target" id="t_active" value="active" onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_active" style="font-size:.8rem">
                     <div style="font-size:1.4rem">🔥</div>
                     <div class="fw-bold">Active (7d)</div>
                     <div class="text-muted" style="font-size:.7rem">{{ active_7d }}</div>
                   </label>
                 </div>
-                <div class="col-4">
-                  <input type="radio" class="btn-check" name="target" id="t_game" value="game_id">
+                <div class="col-3">
+                  <input type="radio" class="btn-check" name="target" id="t_game" value="game_id" onchange="onTargetChange()">
                   <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_game" style="font-size:.8rem">
                     <div style="font-size:1.4rem">🎮</div>
                     <div class="fw-bold">With Game ID</div>
                     <div class="text-muted" style="font-size:.7rem">{{ game_id_count }}</div>
                   </label>
                 </div>
+                <div class="col-3">
+                  <input type="radio" class="btn-check" name="target" id="t_specific" value="specific_ids" onchange="onTargetChange()">
+                  <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_specific" style="font-size:.8rem">
+                    <div style="font-size:1.4rem">🎯</div>
+                    <div class="fw-bold">Specific IDs</div>
+                    <div class="text-muted" style="font-size:.7rem">Choose IDs</div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- ── Game ID picker (shown only when Specific IDs is selected) ── -->
+              <div id="gameIdPicker" style="display:none;margin-top:.75rem;padding:.9rem;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid #2a2a4a">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span style="font-size:.8rem;font-weight:600">Select Game IDs</span>
+                  <span id="gameIdPickerCount" class="badge bg-primary" style="font-size:.7rem">0 selected</span>
+                </div>
+
+                <!-- Search input with dropdown autocomplete -->
+                <div class="position-relative mb-2">
+                  <input type="text" id="gameIdSearch"
+                    class="form-control form-control-sm"
+                    placeholder="Search Game ID…"
+                    autocomplete="off"
+                    oninput="onGameIdSearch(this.value)"
+                    onkeydown="onGameIdSearchKey(event)">
+                  <div id="gameIdDropdown"
+                    style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1050;
+                           background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;
+                           max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.4)">
+                  </div>
+                </div>
+
+                <!-- Selected tags -->
+                <div id="gameIdTags" class="d-flex flex-wrap gap-1 mb-2" style="min-height:28px">
+                  <span class="text-muted" id="gameIdTagsEmpty" style="font-size:.75rem">No Game IDs selected yet.</span>
+                </div>
+
+                <!-- Bulk paste area -->
+                <div>
+                  <textarea id="gameIdBulkInput" class="form-control form-control-sm"
+                    rows="2"
+                    placeholder="Paste multiple Game IDs here (comma or newline separated) then click Add"
+                    style="font-size:.78rem;resize:vertical"></textarea>
+                  <div class="d-flex gap-2 mt-1">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addBulkGameIds()" style="font-size:.75rem">
+                      <i class="bi bi-plus-circle me-1"></i>Add IDs
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearGameIds()" style="font-size:.75rem">
+                      <i class="bi bi-trash me-1"></i>Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Hidden form field submitted with form -->
+                <input type="hidden" name="target_game_ids" id="gameIdHidden">
               </div>
             </div>
 
@@ -747,15 +802,133 @@ async function submitBatch() {
   btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit All Batch';
 }
 
+/* ── Game ID Picker ─────────────────────────────────────────── */
+let selectedGameIds = [];
+let gameIdSearchTimer = null;
+
+function onTargetChange() {
+  const val = document.querySelector('input[name="target"]:checked')?.value;
+  const picker = document.getElementById('gameIdPicker');
+  picker.style.display = (val === 'specific_ids') ? '' : 'none';
+}
+
+function renderGameIdTags() {
+  const container = document.getElementById('gameIdTags');
+  const emptyMsg  = document.getElementById('gameIdTagsEmpty');
+  const countEl   = document.getElementById('gameIdPickerCount');
+
+  emptyMsg.style.display = selectedGameIds.length === 0 ? '' : 'none';
+  countEl.textContent = `${selectedGameIds.length} selected`;
+  document.getElementById('gameIdHidden').value = selectedGameIds.join(',');
+
+  // Remove existing tag elements (keep the empty msg span)
+  container.querySelectorAll('.gid-tag').forEach(el => el.remove());
+
+  selectedGameIds.forEach(id => {
+    const tag = document.createElement('span');
+    tag.className = 'gid-tag badge d-inline-flex align-items-center gap-1';
+    tag.style.cssText = 'background:#1e40af;color:#fff;font-size:.72rem;padding:.25rem .5rem;border-radius:20px;cursor:default';
+    tag.innerHTML = `🎮 ${id} <button type="button" onclick="removeGameId('${id}')"
+      style="background:none;border:none;color:#93c5fd;font-size:.9rem;line-height:1;cursor:pointer;padding:0 0 0 2px">&times;</button>`;
+    container.appendChild(tag);
+  });
+}
+
+function addGameId(id) {
+  id = String(id).trim();
+  if (!id || selectedGameIds.includes(id)) return;
+  selectedGameIds.push(id);
+  renderGameIdTags();
+  // Close dropdown and clear search
+  document.getElementById('gameIdSearch').value = '';
+  hideGameIdDropdown();
+}
+
+function removeGameId(id) {
+  selectedGameIds = selectedGameIds.filter(x => x !== id);
+  renderGameIdTags();
+}
+
+function clearGameIds() {
+  selectedGameIds = [];
+  renderGameIdTags();
+}
+
+function addBulkGameIds() {
+  const raw = document.getElementById('gameIdBulkInput').value;
+  const ids = raw.split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean);
+  ids.forEach(id => { if (!selectedGameIds.includes(id)) selectedGameIds.push(id); });
+  document.getElementById('gameIdBulkInput').value = '';
+  renderGameIdTags();
+}
+
+function hideGameIdDropdown() {
+  document.getElementById('gameIdDropdown').style.display = 'none';
+}
+
+function onGameIdSearch(val) {
+  clearTimeout(gameIdSearchTimer);
+  const dd = document.getElementById('gameIdDropdown');
+  if (!val.trim()) { hideGameIdDropdown(); return; }
+  gameIdSearchTimer = setTimeout(() => {
+    fetch(`/broadcast/game_ids?q=${encodeURIComponent(val)}`)
+      .then(r => r.json())
+      .then(ids => {
+        if (!ids.length) { hideGameIdDropdown(); return; }
+        dd.innerHTML = ids.map(id => {
+          const already = selectedGameIds.includes(id);
+          return `<div onclick="${already ? '' : `addGameId('${id}')`}"
+            style="padding:.4rem .65rem;cursor:${already?'default':'pointer'};font-size:.8rem;
+                   color:${already?'#64748b':'#e2e8f0'};
+                   background:${already?'rgba(255,255,255,.03)':'transparent'};
+                   border-bottom:1px solid #1e293b"
+            onmouseover="if(!${already})this.style.background='rgba(255,255,255,.07)'"
+            onmouseout="if(!${already})this.style.background='transparent'">
+            🎮 ${id}${already?' <small style=\'color:#22c55e\'>✓ added</small>':''}
+          </div>`;
+        }).join('');
+        dd.style.display = '';
+      })
+      .catch(() => hideGameIdDropdown());
+  }, 280);
+}
+
+function onGameIdSearchKey(e) {
+  if (e.key === 'Escape') hideGameIdDropdown();
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = document.getElementById('gameIdSearch').value.trim();
+    if (val) { addGameId(val); }
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('gameIdSearch')?.contains(e.target) &&
+      !document.getElementById('gameIdDropdown')?.contains(e.target)) {
+    hideGameIdDropdown();
+  }
+});
+
 /* ── Form submit handler ───────────────────────────────────── */
 function onFormSubmit() {
   const mode = document.querySelector('input[name="send_mode"]:checked').value;
   const msg  = document.getElementById('msgInput').value.trim();
   const img  = hasImage();
+  const tgt  = document.querySelector('input[name="target"]:checked');
+  const targetVal = tgt ? tgt.value : 'all';
 
   if (!msg && !img) { alert('Please enter a message or attach an image.'); return false; }
   if (img && msg.length > 1024) {
     alert('Caption cannot exceed 1024 characters when an image is attached.'); return false;
+  }
+
+  // Validate specific_ids target
+  if (targetVal === 'specific_ids') {
+    document.getElementById('gameIdHidden').value = selectedGameIds.join(',');
+    if (selectedGameIds.length === 0) {
+      alert('Please select at least one Game ID before sending.'); return false;
+    }
   }
 
   if (mode === 'batch') {
@@ -771,15 +944,15 @@ function onFormSubmit() {
     // Populate hidden fields
     document.getElementById('scheduledAtHidden').value = dt;
     document.getElementById('timezoneHidden').value    = tz;
-    const tgt = document.querySelector('input[name="target"]:checked');
     const lbl = tgt ? tgt.nextElementSibling.querySelector('.fw-bold').textContent : 'All users';
-    return confirm(`Schedule broadcast to: ${lbl}?\n\nAt: ${dt.replace('T',' ')} (${tz})\n\nMessage:\n${msg.slice(0,120)}${msg.length>120?'…':''}`);
+    const extraInfo = targetVal === 'specific_ids' ? ` [${selectedGameIds.length} Game IDs]` : '';
+    return confirm(`Schedule broadcast to: ${lbl}${extraInfo}?\n\nAt: ${dt.replace('T',' ')} (${tz})\n\nMessage:\n${msg.slice(0,120)}${msg.length>120?'…':''}`);
   }
 
   // Send Now
-  const tgt = document.querySelector('input[name="target"]:checked');
   const lbl = tgt ? tgt.nextElementSibling.querySelector('.fw-bold').textContent : 'All users';
-  return confirm(`Send broadcast to: ${lbl}?${img?' [+ image]':''}\n\nMessage:\n${msg.slice(0,100)}${msg.length>100?'…':''}`);
+  const extraInfo = targetVal === 'specific_ids' ? ` [${selectedGameIds.length} Game IDs]` : '';
+  return confirm(`Send broadcast to: ${lbl}${extraInfo}?${img?' [+ image]':''}\n\nMessage:\n${msg.slice(0,100)}${msg.length>100?'…':''}`);
 }
 
 /* ── Tab deep-link (e.g. redirect after cancel/delete) ──────── */
@@ -791,6 +964,8 @@ window.addEventListener('DOMContentLoaded', function() {
   updateMode();
   updatePreview('');
   renderBatchList();
+  onTargetChange();
+  renderGameIdTags();
 });
 </script>
 {% endblock %}
