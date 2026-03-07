@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 
 from models.user import User
 from services.referral_service import get_referral_stats
+from services.event_service import log_event, EVT_PROFILE_VIEW, EVT_REFERRAL_VIEW
 from utils.keyboard import profile_keyboard, back_to_menu_keyboard
 from utils.helpers import (
     format_points,
@@ -47,6 +48,7 @@ async def _profile_impl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             return
 
         lang = user.language or "en"
+        log_event(db, tg_user.id, EVT_PROFILE_VIEW)
         ref_stats = get_referral_stats(db, tg_user.id)
         streak_bar = format_streak_bar(user.streak)
         day_word = t("day", lang) if user.streak == 1 else t("days", lang)
@@ -89,6 +91,7 @@ async def _referral_impl(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         lang = user.language or "en"
+        log_event(db, tg_user.id, EVT_REFERRAL_VIEW)
         ref_stats = get_referral_stats(db, tg_user.id)
         link = build_referral_link(tg_user.id)
         reward = context.bot_data.get("referral_reward", config.REFERRAL_REWARD)

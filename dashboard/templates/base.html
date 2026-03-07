@@ -253,6 +253,9 @@
     <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
       <i class="bi bi-grid-1x2-fill"></i> <span data-i18n="nav_dashboard">Dashboard</span>
     </a>
+    <a href="/analytics" class="nav-link {% if '/analytics' in request.path %}active{% endif %}">
+      <i class="bi bi-graph-up-arrow"></i> <span data-i18n="nav_analytics">Behavior Analytics</span>
+    </a>
 
     <div class="nav-section-title" data-i18n="sec_users">Users</div>
     <a href="/users" class="nav-link {% if '/users' in request.path and request.args.get('filter','all') != 'active' %}active{% endif %}">
@@ -447,6 +450,7 @@ const DASHBOARD_TRANSLATIONS = {
   en: {
     sec_overview:       'Overview',
     nav_dashboard:      'Dashboard',
+    nav_analytics:      'Behavior Analytics',
     sec_users:          'Users',
     nav_all_users:      'All Users',
     nav_active_users:   'Active Users',
@@ -467,6 +471,7 @@ const DASHBOARD_TRANSLATIONS = {
   vi: {
     sec_overview:       'Tổng Quan',
     nav_dashboard:      'Bảng Điều Khiển',
+    nav_analytics:      'Phân Tích Hành Vi',
     sec_users:          'Người Dùng',
     nav_all_users:      'Tất Cả Người Dùng',
     nav_active_users:   'Người Dùng Hoạt Động',
@@ -487,6 +492,7 @@ const DASHBOARD_TRANSLATIONS = {
   zh: {
     sec_overview:       '概览',
     nav_dashboard:      '控制面板',
+    nav_analytics:      '行为分析',
     sec_users:          '用户',
     nav_all_users:      '所有用户',
     nav_active_users:   '活跃用户',
@@ -507,6 +513,7 @@ const DASHBOARD_TRANSLATIONS = {
   es: {
     sec_overview:       'Resumen',
     nav_dashboard:      'Panel de Control',
+    nav_analytics:      'Análisis de Comportamiento',
     sec_users:          'Usuarios',
     nav_all_users:      'Todos los Usuarios',
     nav_active_users:   'Usuarios Activos',

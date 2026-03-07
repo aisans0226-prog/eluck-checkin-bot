@@ -13,6 +13,12 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from models.user import User
 from services.checkin_service import get_or_create_user, perform_checkin
+from services.event_service import (
+    log_event,
+    EVT_BTN_CHECKIN, EVT_CMD_CHECKIN,
+    EVT_CHECKIN_SUCCESS, EVT_CHECKIN_ALREADY, EVT_CHECKIN_ABANDON,
+    EVT_GAME_ID_REGISTER,
+)
 from utils.keyboard import checkin_success_keyboard, back_to_menu_keyboard
 from utils.helpers import format_points, format_streak_bar, rate_limited, safe_edit_or_reply
 from utils.i18n import t
@@ -54,8 +60,13 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         if update.callback_query:
             await update.callback_query.answer()
 
+        # ── Track checkin attempt ─────────────────────────────
+        evt = EVT_BTN_CHECKIN if update.callback_query else EVT_CMD_CHECKIN
+        log_event(db, tg_user.id, evt)
+
         # ── No game ID yet — enter conversation ───────────────
         if not user.game_id:
+            log_event(db, tg_user.id, EVT_CHECKIN_ABANDON, {"reason": "no_game_id"})
             await safe_edit_or_reply(
                 update,
                 text=t("game_id_required", lang),
@@ -69,6 +80,7 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         db.commit()
 
         if result.already_checked_in:
+            log_event(db, tg_user.id, EVT_CHECKIN_ALREADY, {"streak": user.streak})
             await safe_edit_or_reply(
                 update,
                 text=t("already_checkedin", lang, streak=user.streak),
@@ -76,6 +88,11 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 parse_mode="HTML",
             )
         else:
+            log_event(db, tg_user.id, EVT_CHECKIN_SUCCESS, {
+                "streak": result.streak,
+                "points": result.points_earned,
+                "bonus":  result.streak_bonus,
+            })
             await _send_checkin_success(update, user, result, lang)
 
     except Exception as exc:
@@ -121,10 +138,16 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         # Save the game ID
         user.game_id = text
         db.flush()
+        log_event(db, tg_user.id, EVT_GAME_ID_REGISTER)
 
         # Immediately perform check-in after registering game ID
         result = perform_checkin(db, user)
         db.commit()
+        log_event(db, tg_user.id, EVT_CHECKIN_SUCCESS, {
+            "streak": result.streak,
+            "points": result.points_earned,
+            "new_registration": True,
+        })
 
         await _send_checkin_success(update, user, result, lang, new_registration=True)
 

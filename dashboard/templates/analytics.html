@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Behavior Analytics{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+
+{% block content %}
+<!-- ── Filter bar ─────────────────────────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h5 class="mb-0 fw-semibold text-purple">Behavior Analytics</h5>
+  <div class="d-flex align-items-center gap-2">
+    {% if forecast.ai_powered %}
+      <span class="badge bg-success bg-opacity-25 text-success" style="font-size:.7rem">
+        <i class="bi bi-cpu-fill me-1"></i>AI Powered
+      </span>
+    {% else %}
+      <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size:.7rem">
+        <i class="bi bi-bar-chart-fill me-1"></i>Rule-based
+      </span>
+    {% endif %}
+    <form method="get" class="d-flex gap-1">
+      <select name="days" class="form-select form-select-sm" style="width:110px" onchange="this.form.submit()">
+        {% for d in [7,14,30,60,90] %}
+          <option value="{{ d }}" {% if d == days %}selected{% endif %}>Last {{ d }}d</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+
+<!-- ── Summary stat cards ─────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon bg-purple-soft"><i class="bi bi-activity text-purple"></i></div>
+      <div class="stat-value">{{ total_events | format_number }}</div>
+      <div class="stat-label">Total Events</div>
+      <div class="stat-change text-muted">Last {{ days }} days</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(251,146,60,.15)"><i class="bi bi-people-fill" style="color:#fb923c"></i></div>
+      <div class="stat-value">{{ unique_users | format_number }}</div>
+      <div class="stat-label">Active Users</div>
+      <div class="stat-change text-muted">Interacted with bot</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(34,197,94,.15)"><i class="bi bi-check-circle-fill" style="color:#4ade80"></i></div>
+      <div class="stat-value">{{ funnel.success | format_number }}</div>
+      <div class="stat-label">Check-ins Done</div>
+      <div class="stat-change {% if funnel.started > 0 %}text-success{% else %}text-muted{% endif %}">
+        {% if funnel.started > 0 %}
+          {{ "%.0f"|format(funnel.success / funnel.started * 100) }}% completion rate
+        {% else %}No data yet{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(99,179,237,.15)"><i class="bi bi-graph-up-arrow" style="color:#63b3ed"></i></div>
+      <div class="stat-value">{{ forecast.predicted_tomorrow }}</div>
+      <div class="stat-label">Forecast Tomorrow</div>
+      <div class="stat-change
+        {% if forecast.trend == 'up' %}text-success
+        {% elif forecast.trend == 'down' %}text-danger
+        {% else %}text-muted{% endif %}">
+        <i class="bi bi-arrow-{% if forecast.trend == 'up' %}up{% elif forecast.trend == 'down' %}down{% else %}right{% endif %}"></i>
+        {{ forecast.trend | capitalize }} trend
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Daily Active Users chart -->
+  <div class="col-12 col-lg-8">
+    <div class="glass p-3 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="fw-semibold" style="font-size:.875rem">Daily Active Users</span>
+        <span class="text-muted" style="font-size:.75rem">Last {{ days }} days</span>
+      </div>
+      <div class="chart-container" style="height:200px">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hourly heatmap -->
+  <div class="col-12 col-lg-4">
+    <div class="glass p-3 h-100">
+      <div class="fw-semibold mb-3" style="font-size:.875rem">Peak Hours (UTC)</div>
+      <div class="chart-container" style="height:200px">
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Feature usage bar chart -->
+  <div class="col-12 col-lg-7">
+    <div class="glass p-3 h-100">
+      <div class="fw-semibold mb-3" style="font-size:.875rem">Feature Usage</div>
+      <div class="chart-container" style="height:240px">
+        <canvas id="featureChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check-in funnel -->
+  <div class="col-12 col-lg-5">
+    <div class="glass p-3 h-100">
+      <div class="fw-semibold mb-3" style="font-size:.875rem">Check-in Funnel</div>
+      <div class="mb-2" style="font-size:.8rem">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Attempted</span>
+          <span class="fw-semibold">{{ funnel.started }}</span>
+        </div>
+        {% set w_started = 100 %}
+        <div class="progress mb-3" style="height:8px">
+          <div class="progress-bar bg-primary" style="width:{{ w_started }}%"></div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Abandoned (no Game ID)</span>
+          <span class="fw-semibold text-warning">{{ funnel.abandoned }}</span>
+        </div>
+        {% set w_abandon = (funnel.abandoned / funnel.started * 100) | int if funnel.started > 0 else 0 %}
+        <div class="progress mb-3" style="height:8px">
+          <div class="progress-bar bg-warning" style="width:{{ w_abandon }}%"></div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Already checked in</span>
+          <span class="fw-semibold text-info">{{ funnel.already }}</span>
+        </div>
+        {% set w_already = (funnel.already / funnel.started * 100) | int if funnel.started > 0 else 0 %}
+        <div class="progress mb-3" style="height:8px">
+          <div class="progress-bar bg-info" style="width:{{ w_already }}%"></div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-muted">Success</span>
+          <span class="fw-semibold text-success">{{ funnel.success }}</span>
+        </div>
+        {% set w_success = (funnel.success / funnel.started * 100) | int if funnel.started > 0 else 0 %}
+        <div class="progress mb-3" style="height:8px">
+          <div class="progress-bar bg-success" style="width:{{ w_success }}%"></div>
+        </div>
+      </div>
+
+      {% if funnel.started == 0 %}
+      <p class="text-muted text-center" style="font-size:.8rem">No check-in events yet. Data will appear after users interact with the bot.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Churn Risk Table -->
+<div class="glass p-3 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="fw-semibold" style="font-size:.875rem">Churn Risk Users</span>
+      {% if risk_users and risk_users[0].ai_powered %}
+        <span class="badge bg-success bg-opacity-25 text-success ms-2" style="font-size:.65rem">AI</span>
+      {% else %}
+        <span class="badge bg-secondary bg-opacity-25 text-secondary ms-2" style="font-size:.65rem">Rule-based</span>
+      {% endif %}
+    </div>
+    <span class="text-muted" style="font-size:.75rem">Top 10 at-risk users</span>
+  </div>
+
+  {% if risk_users %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Streak</th>
+          <th>Days Inactive</th>
+          <th>Risk</th>
+          <th>Score</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in risk_users %}
+        <tr>
+          <td>
+            <a href="/users/{{ u.telegram_id }}" class="text-decoration-none text-purple">
+              {{ u.display_name }}
+            </a>
+          </td>
+          <td><span class="badge-streak badge rounded-pill px-2">🔥{{ u.streak }}</span></td>
+          <td>{{ u.days_since }}d</td>
+          <td>
+            {% if u.risk == 'high' %}
+              <span class="badge badge-inactive rounded-pill px-2">High</span>
+            {% else %}
+              <span class="badge" style="background:rgba(251,146,60,.15);color:#fb923c">Medium</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="progress" style="height:6px;width:60px">
+              <div class="progress-bar {% if u.risk == 'high' %}bg-danger{% else %}bg-warning{% endif %}"
+                   style="width:{{ (u.score * 100) | int }}%"></div>
+            </div>
+            <small class="text-muted">{{ "%.0f"|format(u.score * 100) }}%</small>
+          </td>
+          <td class="text-muted" style="font-size:.8rem">{{ u.reason }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted text-center py-3" style="font-size:.85rem">
+    No at-risk users found. Either no data yet, or all your users are healthy!
+  </p>
+  {% endif %}
+
+  {% if not risk_users or not risk_users[0].ai_powered %}
+  <div class="mt-3 p-2 rounded" style="background:rgba(99,179,237,.08);border:1px solid rgba(99,179,237,.2);font-size:.78rem">
+    <i class="bi bi-info-circle me-1" style="color:#63b3ed"></i>
+    <strong style="color:#63b3ed">AI Upgrade:</strong>
+    Set <code>AI_API_KEY</code> in <code>.env</code> to enable AI-powered churn prediction with more accurate scoring.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DAILY_LABELS = {{ daily_labels | tojson }};
+const DAILY_VALUES = {{ daily_values | tojson }};
+const HOURLY_DATA  = {{ hourly | tojson }};
+const TOP_EVENTS   = {{ top_events | tojson }};
+
+// ── Friendly event type labels ──────────────────────────────
+const EVENT_LABELS = {
+  cmd_start:        '/start',
+  cmd_checkin:      '/checkin cmd',
+  btn_checkin:      'Check-in btn',
+  btn_home:         'Home btn',
+  btn_profile:      'Profile btn',
+  btn_tasks:        'Tasks btn',
+  btn_referral:     'Referral btn',
+  btn_leaderboard:  'Leaderboard btn',
+  btn_language_menu:'Language menu',
+  btn_task_view:    'View task',
+  btn_task_complete:'Complete task',
+  checkin_success:  'Check-in ✅',
+  checkin_already:  'Already checked-in',
+  checkin_abandoned:'Abandoned check-in',
+  game_id_register: 'Game ID registered',
+  task_completed:   'Task completed',
+  task_failed:      'Task failed',
+  language_changed: 'Language changed',
+  referral_used:    'Referral used',
+  profile_view:     'Profile viewed',
+  referral_view:    'Referral viewed',
+};
+
+const PURPLE  = 'rgba(111,66,193,0.8)';
+const ACCENT  = 'rgba(253,126,20,0.8)';
+const GREEN   = 'rgba(74,222,128,0.8)';
+const BLUE    = 'rgba(99,179,237,0.8)';
+
+const chartDefaults = {
+  color: '#94a3b8',
+  borderColor: '#2a2a4a',
+  font: { family: 'system-ui, sans-serif', size: 11 },
+};
+Chart.defaults.color          = chartDefaults.color;
+Chart.defaults.borderColor    = chartDefaults.borderColor;
+Chart.defaults.font.size      = chartDefaults.font.size;
+
+// ── Daily Active Users ──────────────────────────────────────
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: DAILY_LABELS,
+    datasets: [{
+      label: 'Active Users',
+      data: DAILY_VALUES,
+      borderColor: PURPLE,
+      backgroundColor: 'rgba(111,66,193,0.12)',
+      borderWidth: 2,
+      pointRadius: 3,
+      tension: 0.35,
+      fill: true,
+    }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#1e1e3a' }, ticks: { maxTicksLimit: 8 } },
+      y: { grid: { color: '#1e1e3a' }, beginAtZero: true },
+    },
+  },
+});
+
+// ── Hourly distribution ─────────────────────────────────────
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: Array.from({length:24}, (_, i) => i + 'h'),
+    datasets: [{
+      label: 'Events',
+      data: HOURLY_DATA,
+      backgroundColor: PURPLE,
+      borderRadius: 3,
+    }],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#1e1e3a' }, beginAtZero: true },
+    },
+  },
+});
+
+// ── Feature usage ───────────────────────────────────────────
+const featLabels = TOP_EVENTS.map(e => EVENT_LABELS[e[0]] || e[0]);
+const featValues = TOP_EVENTS.map(e => e[1]);
+const featColors = [
+  PURPLE, ACCENT, GREEN, BLUE,
+  'rgba(248,113,113,.8)', 'rgba(251,191,36,.8)',
+  'rgba(167,139,250,.8)', 'rgba(94,234,212,.8)',
+  'rgba(249,115,22,.8)',  'rgba(56,189,248,.8)',
+  'rgba(163,230,53,.8)',  'rgba(232,121,249,.8)',
+];
+
+new Chart(document.getElementById('featureChart'), {
+  type: 'bar',
+  data: {
+    labels: featLabels,
+    datasets: [{
+      label: 'Events',
+      data: featValues,
+      backgroundColor: featColors.slice(0, featLabels.length),
+      borderRadius: 4,
+    }],
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#1e1e3a' }, beginAtZero: true },
+      y: { grid: { display: false }, ticks: { font: { size: 10 } } },
+    },
+  },
+});
+</script>
+{% endblock %}

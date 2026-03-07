@@ -53,6 +53,12 @@ from models.bot_config import BotConfig, get_config, set_config, DEFAULT_CONFIGS
 from models.dashboard_user import DashboardUser
 from models.audit_log import AuditLog
 from models.scheduled_broadcast import ScheduledBroadcast
+from models.user_event import UserEvent
+from services.ai_analytics_service import (
+    predict_churn_risk,
+    summarize_behavior,
+    forecast_engagement,
+)
 
 load_dotenv()
 
@@ -1403,6 +1409,176 @@ def api_user_search():
                 "total_checkin": u.total_checkin, "points": u.points,
                 "last_checkin": str(u.last_checkin) if u.last_checkin else "Never",
             } for u in rows],
+        })
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────
+# ROUTES — User Behavior Analytics
+# ─────────────────────────────────────────────────────────────
+@app.route("/analytics")
+@login_required
+def analytics():
+    db = db_session()
+    try:
+        days = max(1, min(int(request.args.get("days", 30)), 365))
+        since = datetime.utcnow() - timedelta(days=days)
+
+        # ── Summary counts ────────────────────────────────────
+        total_events = db.query(UserEvent).filter(UserEvent.created_at >= since).count()
+        unique_users = (
+            db.query(func.count(func.distinct(UserEvent.telegram_id)))
+            .filter(UserEvent.created_at >= since)
+            .scalar() or 0
+        )
+
+        # ── Top event types ───────────────────────────────────
+        top_events = (
+            db.query(UserEvent.event_type, func.count(UserEvent.id).label("cnt"))
+            .filter(UserEvent.created_at >= since)
+            .group_by(UserEvent.event_type)
+            .order_by(func.count(UserEvent.id).desc())
+            .limit(12)
+            .all()
+        )
+
+        # ── Hourly distribution (0–23 UTC) ────────────────────
+        hourly_raw = (
+            db.query(
+                func.strftime("%H", UserEvent.created_at).label("hr"),
+                func.count(UserEvent.id).label("cnt"),
+            )
+            .filter(UserEvent.created_at >= since)
+            .group_by(func.strftime("%H", UserEvent.created_at))
+            .all()
+        )
+        hourly = [0] * 24
+        for row in hourly_raw:
+            try:
+                hourly[int(row.hr)] = row.cnt
+            except (TypeError, ValueError):
+                pass
+
+        # ── Daily active users (last `days` days) ─────────────
+        daily_raw = (
+            db.query(
+                func.date(UserEvent.created_at).label("day"),
+                func.count(func.distinct(UserEvent.telegram_id)).label("users"),
+            )
+            .filter(UserEvent.created_at >= since)
+            .group_by(func.date(UserEvent.created_at))
+            .order_by(func.date(UserEvent.created_at))
+            .all()
+        )
+        daily_labels = [r.day for r in daily_raw]
+        daily_values = [r.users for r in daily_raw]
+
+        # ── Check-in funnel ───────────────────────────────────
+        from services.event_service import (
+            EVT_BTN_CHECKIN, EVT_CMD_CHECKIN,
+            EVT_CHECKIN_ABANDON, EVT_CHECKIN_SUCCESS, EVT_CHECKIN_ALREADY,
+        )
+
+        def _count(evt_type):
+            return (
+                db.query(UserEvent)
+                .filter(UserEvent.event_type == evt_type, UserEvent.created_at >= since)
+                .count()
+            )
+
+        funnel = {
+            "started":  _count(EVT_BTN_CHECKIN) + _count(EVT_CMD_CHECKIN),
+            "abandoned": _count(EVT_CHECKIN_ABANDON),
+            "already":   _count(EVT_CHECKIN_ALREADY),
+            "success":   _count(EVT_CHECKIN_SUCCESS),
+        }
+
+        # ── AI Forecast ───────────────────────────────────────
+        forecast = forecast_engagement(daily_values) if daily_values else {
+            "predicted_tomorrow": 0, "trend": "stable", "ai_powered": False
+        }
+
+        # ── High-churn users (rule-based, top 10) ────────────
+        today = date.today()
+        risk_users = []
+        for u in db.query(User).filter(User.total_checkin > 0).all():
+            days_since = (today - u.last_checkin).days if u.last_checkin else 999
+            result = predict_churn_risk({
+                "streak":          u.streak,
+                "total_checkin":   u.total_checkin,
+                "days_since_last": days_since,
+            })
+            if result["risk"] in ("high", "medium"):
+                risk_users.append({
+                    "display_name": u.display_name,
+                    "telegram_id":  u.telegram_id,
+                    "streak":       u.streak,
+                    "days_since":   days_since,
+                    "risk":         result["risk"],
+                    "score":        result["score"],
+                    "reason":       result["reason"],
+                    "ai_powered":   result["ai_powered"],
+                })
+        risk_users.sort(key=lambda x: x["score"], reverse=True)
+        risk_users = risk_users[:10]
+
+        return render_template(
+            "analytics.html",
+            days=days,
+            total_events=total_events,
+            unique_users=unique_users,
+            top_events=[(r.event_type, r.cnt) for r in top_events],
+            hourly=hourly,
+            daily_labels=daily_labels,
+            daily_values=daily_values,
+            funnel=funnel,
+            forecast=forecast,
+            risk_users=risk_users,
+        )
+    finally:
+        db.close()
+
+
+@app.route("/api/analytics")
+@login_required
+def api_analytics():
+    """JSON endpoint — returns the same data as /analytics for AJAX refresh."""
+    db = db_session()
+    try:
+        days = max(1, min(int(request.args.get("days", 30)), 365))
+        since = datetime.utcnow() - timedelta(days=days)
+
+        top_events = (
+            db.query(UserEvent.event_type, func.count(UserEvent.id).label("cnt"))
+            .filter(UserEvent.created_at >= since)
+            .group_by(UserEvent.event_type)
+            .order_by(func.count(UserEvent.id).desc())
+            .limit(12)
+            .all()
+        )
+
+        daily_raw = (
+            db.query(
+                func.date(UserEvent.created_at).label("day"),
+                func.count(func.distinct(UserEvent.telegram_id)).label("users"),
+            )
+            .filter(UserEvent.created_at >= since)
+            .group_by(func.date(UserEvent.created_at))
+            .order_by(func.date(UserEvent.created_at))
+            .all()
+        )
+
+        daily_counts = [r.users for r in daily_raw]
+        forecast = forecast_engagement(daily_counts) if daily_counts else {
+            "predicted_tomorrow": 0, "trend": "stable", "ai_powered": False
+        }
+
+        return jsonify({
+            "top_events": [{"type": r.event_type, "count": r.cnt} for r in top_events],
+            "daily_active": [{"day": r.day, "users": r.users} for r in daily_raw],
+            "forecast": forecast,
+            "total_events": db.query(UserEvent).filter(UserEvent.created_at >= since).count(),
         })
     finally:
         db.close()

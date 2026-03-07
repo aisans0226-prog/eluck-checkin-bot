@@ -10,6 +10,7 @@ from telegram.ext import ContextTypes
 
 from services.checkin_service import get_or_create_user
 from services.referral_service import process_referral
+from services.event_service import log_event, EVT_CMD_START, EVT_REFERRAL_USED
 from utils.keyboard import main_menu_keyboard
 from utils.helpers import rate_limited
 from utils.i18n import detect_lang, t
@@ -53,6 +54,9 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             lang = user.language or "en"
 
+        # ── Track /start event ────────────────────────────────
+        log_event(db, tg_user.id, EVT_CMD_START, {"is_new": is_new})
+
         # ── Handle referral payload ───────────────────────────
         referral_text = ""
         if context.args:
@@ -62,6 +66,8 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                     referrer_id = int(payload[3:])
                     referred = process_referral(db, referrer_id, user)
                     if referred:
+                        log_event(db, tg_user.id, EVT_REFERRAL_USED,
+                                  {"referrer_id": referrer_id})
                         referral_text = t(
                             "referral_bonus", lang, points=config.REFERRAL_REWARD
                         )
