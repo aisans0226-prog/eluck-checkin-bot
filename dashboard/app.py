@@ -769,7 +769,16 @@ def broadcast():
 
         message_text = request.form.get("message", "").strip()
         target       = request.form.get("target", "all")
-        if not message_text:
+
+        # Read uploaded image (if any)
+        image_file = request.files.get("image")
+        image_data, image_filename, image_content_type = None, None, "image/jpeg"
+        if image_file and image_file.filename:
+            image_data         = image_file.read()
+            image_filename     = image_file.filename
+            image_content_type = image_file.content_type or "image/jpeg"
+
+        if not message_text and not image_data:
             flash("Message cannot be empty.", "danger")
             return redirect(url_for("broadcast"))
 
@@ -784,17 +793,27 @@ def broadcast():
         sent, failed = 0, 0
         for u in users_list:
             try:
-                resp = requests.post(
-                    f"{TELEGRAM_API}/sendMessage",
-                    json={"chat_id": u.telegram_id, "text": f"📢 <b>Announcement</b>\n\n{message_text}", "parse_mode": "HTML"},
-                    timeout=5,
-                )
+                if image_data:
+                    caption = f"📢 <b>Announcement</b>\n\n{message_text}" if message_text else "📢 <b>Announcement</b>"
+                    resp = requests.post(
+                        f"{TELEGRAM_API}/sendPhoto",
+                        data={"chat_id": u.telegram_id, "caption": caption[:1024], "parse_mode": "HTML"},
+                        files={"photo": (image_filename, image_data, image_content_type)},
+                        timeout=10,
+                    )
+                else:
+                    resp = requests.post(
+                        f"{TELEGRAM_API}/sendMessage",
+                        json={"chat_id": u.telegram_id, "text": f"📢 <b>Announcement</b>\n\n{message_text}", "parse_mode": "HTML"},
+                        timeout=5,
+                    )
                 sent += 1 if resp.ok else 0
                 failed += 0 if resp.ok else 1
             except Exception:
                 failed += 1
 
-        log_action("broadcast", f"target:{target}", f"sent={sent} failed={failed} msg={message_text[:80]!r}")
+        has_img_note = " [+image]" if image_data else ""
+        log_action("broadcast", f"target:{target}", f"sent={sent} failed={failed}{has_img_note} msg={message_text[:80]!r}")
         flash(f"Broadcast complete! Sent: {sent:,} | Failed: {failed:,}", "success")
         return redirect(url_for("broadcast"))
     finally:
