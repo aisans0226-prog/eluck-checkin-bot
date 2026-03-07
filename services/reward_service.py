@@ -9,9 +9,35 @@ from sqlalchemy.orm import Session
 
 from models.user import User
 from models.task import UserTask
-import config
+from models.task_definition import TaskDefinition
 
 logger = logging.getLogger(__name__)
+
+
+def get_active_tasks(db: Session) -> list[dict]:
+    """
+    Load active task definitions from the database and return them in the
+    same dict format as the legacy config.TASKS list:
+      {id, name, description, reward, type, url, required_count}
+    """
+    rows = (
+        db.query(TaskDefinition)
+        .filter(TaskDefinition.is_active == True)  # noqa: E712
+        .order_by(TaskDefinition.id)
+        .all()
+    )
+    return [
+        {
+            "id":             row.task_key,
+            "name":           row.name,
+            "description":    row.description,
+            "reward":         row.reward_points,
+            "type":           row.task_type,
+            "url":            row.url,
+            "required_count": row.required_count,
+        }
+        for row in rows
+    ]
 
 
 def get_user_task_status(db: Session, user: User) -> list[str]:
@@ -31,10 +57,21 @@ def complete_task(db: Session, user: User, task_id: str) -> tuple[bool, int]:
     Returns:
         (success: bool, points_awarded: int)
     """
-    # Find task definition
-    task_def = next((t for t in config.TASKS if t["id"] == task_id), None)
-    if not task_def:
+    # Find task definition from DB (active only)
+    task_obj = (
+        db.query(TaskDefinition)
+        .filter(TaskDefinition.task_key == task_id, TaskDefinition.is_active == True)  # noqa: E712
+        .first()
+    )
+    if not task_obj:
         return False, 0
+
+    task_def = {
+        "id":             task_obj.task_key,
+        "type":           task_obj.task_type,
+        "required_count": task_obj.required_count,
+        "reward":         task_obj.reward_points,
+    }
 
     # Check if already completed
     existing = (

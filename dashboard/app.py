@@ -616,8 +616,10 @@ def task_edit(task_id: int):
         td.is_active      = request.form.get("is_active") == "on"
         td.updated_at     = datetime.utcnow()
         db.commit()
-        log_action("edit_task", f"task:{task_id}", f"{old_name!r} → {td.name!r} pts={td.reward_points}")
-        flash(f"Task '{td.name}' updated.", "success")
+        new_name = td.name          # refresh while session still open
+        new_pts  = td.reward_points
+        log_action("edit_task", f"task:{task_id}", f"{old_name!r} → {new_name!r} pts={new_pts}")
+        flash(f"Task '{new_name}' updated.", "success")
     except Exception as exc:
         db.rollback()
         flash(f"Error: {exc}", "danger")

@@ -8,9 +8,8 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-import config
 from models.user import User
-from services.reward_service import get_user_task_status, complete_task
+from services.reward_service import get_user_task_status, complete_task, get_active_tasks
 from utils.keyboard import (
     main_menu_keyboard,
     tasks_keyboard,
@@ -111,7 +110,8 @@ async def _show_tasks(
             return
 
         completed_ids = get_user_task_status(db, user)
-        total_tasks = len(config.TASKS)
+        tasks_list = get_active_tasks(db)
+        total_tasks = len(tasks_list)
         done = len(completed_ids)
 
         text = (
@@ -123,7 +123,7 @@ async def _show_tasks(
         await safe_edit_or_reply(
             update,
             text,
-            reply_markup=tasks_keyboard(config.TASKS, completed_ids, lang),
+            reply_markup=tasks_keyboard(tasks_list, completed_ids, lang),
         )
     finally:
         db.close()
@@ -132,16 +132,17 @@ async def _show_tasks(
 async def _show_task_detail(
     update: Update, context: ContextTypes.DEFAULT_TYPE, task_id: str, lang: str
 ) -> None:
-    task_def = next((t_ for t_ in config.TASKS if t_["id"] == task_id), None)
-    if not task_def:
-        await safe_edit_or_reply(
-            update, t("task_not_found", lang), reply_markup=back_to_menu_keyboard(lang)
-        )
-        return
-
     tg_user = update.effective_user
     db = context.bot_data["db_session"]()
     try:
+        tasks_list = get_active_tasks(db)
+        task_def = next((t_ for t_ in tasks_list if t_["id"] == task_id), None)
+        if not task_def:
+            await safe_edit_or_reply(
+                update, t("task_not_found", lang), reply_markup=back_to_menu_keyboard(lang)
+            )
+            return
+
         user = db.query(User).filter(User.telegram_id == tg_user.id).first()
         completed_ids = get_user_task_status(db, user) if user else []
         is_done = task_def["id"] in completed_ids
@@ -183,7 +184,8 @@ async def _complete_task(
         success, pts = complete_task(db, user, task_id)
         db.commit()
 
-        task_def = next((t_ for t_ in config.TASKS if t_["id"] == task_id), {})
+        tasks_list = get_active_tasks(db)
+        task_def = next((t_ for t_ in tasks_list if t_["id"] == task_id), {})
 
         if success:
             text = t(
