@@ -109,9 +109,38 @@ TASKS: list[dict] = [
 ]
 
 # ─────────────────────────────────────────────────────────────
+# TIMEZONE
+# ─────────────────────────────────────────────────────────────
+BOT_TIMEZONE: str = os.getenv("BOT_TIMEZONE", "America/Mexico_City")
+
+# ─────────────────────────────────────────────────────────────
+# SCHEDULER SETTINGS
+# ─────────────────────────────────────────────────────────────
+STREAK_REMINDER_HOUR: int = int(os.getenv("STREAK_REMINDER_HOUR", "18"))
+STREAK_REMINDER_MIN: int = int(os.getenv("STREAK_REMINDER_MIN_STREAK", "3"))
+DAILY_DIGEST_HOUR: int = int(os.getenv("DAILY_DIGEST_HOUR", "8"))
+CHURN_ALERT_HOUR: int = int(os.getenv("CHURN_ALERT_HOUR", "9"))
+
+# ─────────────────────────────────────────────────────────────
+# GAME ID VALIDATION
+# ─────────────────────────────────────────────────────────────
+GAME_ID_MIN_LEN: int = int(os.getenv("GAME_ID_MIN_LEN", "4"))
+GAME_ID_MAX_LEN: int = int(os.getenv("GAME_ID_MAX_LEN", "20"))
+
+# ─────────────────────────────────────────────────────────────
+# STREAK FREEZE
+# ─────────────────────────────────────────────────────────────
+STREAK_FREEZE_PER_MONTH: int = int(os.getenv("STREAK_FREEZE_PER_MONTH", "1"))
+
+# ─────────────────────────────────────────────────────────────
+# CHURN ALERT THRESHOLD
+# ─────────────────────────────────────────────────────────────
+CHURN_ALERT_DAYS_INACTIVE: int = int(os.getenv("CHURN_ALERT_DAYS_INACTIVE", "5"))
+
+# ─────────────────────────────────────────────────────────────
 # LEADERBOARD
 # ─────────────────────────────────────────────────────────────
-LEADERBOARD_SIZE: int = 10   # number of entries to show
+LEADERBOARD_SIZE: int = int(os.getenv("LEADERBOARD_SIZE", "10"))
 
 # ─────────────────────────────────────────────────────────────
 # MESSAGES — centralised text strings (i18n-ready)

@@ -132,6 +132,32 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn_no": "❌ No",
         # General errors
         "error_generic": "⚠️ An error occurred. Please try again.",
+        # Moderation
+        "banned_message": (
+            "⛔ <b>Your account has been suspended.</b>\n\n"
+            "You are no longer able to use this bot.\n"
+            "If you believe this is a mistake, please contact support."
+        ),
+        # Game ID
+        "game_id_taken": (
+            "❌ <b>Game ID already registered.</b>\n\n"
+            "This Game ID is linked to another account.\n"
+            "Please enter a different Game ID."
+        ),
+        # Streak freeze
+        "freeze_used_notice": (
+            "\n❄️ <i>Streak freeze used! "
+            "{remaining} freeze(s) remaining this month.</i>"
+        ),
+        "freeze_available": (
+            "\n\n❄️ <i>You have <b>{count} streak freeze(s)</b> available this month. "
+            "A freeze protects your streak if you miss exactly one day.</i>"
+        ),
+        # Channel verification
+        "channel_not_joined": (
+            "⚠️ <b>You haven't joined the channel yet.</b>\n\n"
+            "Please join the channel first, then tap 'Mark as Done'."
+        ),
         # Scheduler messages
         "streak_reminder": (
             "⏰ <b>Don't break your streak!</b>\n\n"

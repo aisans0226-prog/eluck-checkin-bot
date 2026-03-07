@@ -2,37 +2,53 @@
 # utils/keyboard.py — Inline & ReplyKeyboard factory helpers
 # ============================================================
 
+import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from utils.i18n import t
 import config
 import database
 from models.bot_config import get_config
 
+# ── TTL cache for DB-stored config values ────────────────────
+# Avoids opening a new DB session on every keyboard render.
+# Values are refreshed every 5 minutes.
+_CONFIG_CACHE: dict[str, tuple[str | None, float]] = {}
+_CACHE_TTL = 300  # seconds
 
-def _get_link(key: str, fallback: str) -> str:
-    """Read a link from DB config, falling back to config.py value."""
+
+def _cached_config(key: str, fallback) -> str | None:
+    """Return a config value from cache, refreshing from DB every TTL seconds."""
+    now = time.monotonic()
+    cached = _CONFIG_CACHE.get(key)
+    if cached and now - cached[1] < _CACHE_TTL:
+        return cached[0]
+
+    # Cache miss or expired — query DB
     try:
         if database.SessionLocal is None:
-            return fallback
+            return fallback if isinstance(fallback, str) else str(fallback)
         db = database.SessionLocal()
-        val = get_config(db, key)
-        db.close()
-        return val if val else fallback
+        try:
+            val = get_config(db, key)
+        finally:
+            db.close()
+        result = val if val else (fallback if isinstance(fallback, str) else str(fallback))
     except Exception:
-        return fallback
+        result = fallback if isinstance(fallback, str) else str(fallback)
+
+    _CONFIG_CACHE[key] = (result, now)
+    return result
+
+
+def _get_link(key: str, fallback: str) -> str:
+    """Read a URL from DB config with cache, falling back to config.py value."""
+    return _cached_config(key, fallback) or fallback
 
 
 def _get_bool(key: str, fallback: bool) -> bool:
-    """Read a boolean flag from DB config."""
-    try:
-        if database.SessionLocal is None:
-            return fallback
-        db = database.SessionLocal()
-        val = get_config(db, key)
-        db.close()
-        return val.lower() == "true" if val else fallback
-    except Exception:
-        return fallback
+    """Read a boolean flag from DB config with cache."""
+    val = _cached_config(key, str(fallback).lower())
+    return val.lower() == "true" if val else fallback
 
 
 def main_menu_keyboard(lang: str = "en") -> InlineKeyboardMarkup:

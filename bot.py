@@ -48,11 +48,16 @@ from admin.admin_commands import (
     export_handler,
     broadcast_start,
     broadcast_send,
+    broadcast_confirm,
     broadcast_cancel,
     addpoints_handler,
     resetstreak_handler,
     userinfo_handler,
+    ban_handler,
+    unban_handler,
+    deleteuser_handler,
     BROADCAST_TEXT,
+    BROADCAST_CONFIRM,
 )
 
 # ─────────────────────────────────────────────────────────────
@@ -90,23 +95,27 @@ async def job_reset_daily_stats(app: Application) -> None:
 
 async def job_streak_reminder(app: Application) -> None:
     """
-    Runs at 18:00 UTC every day.
+    Runs at STREAK_REMINDER_HOUR every day.
     Sends a nudge to users who haven't checked in yet today.
+    Automatically marks users as is_blocked when Forbidden error occurs.
     """
+    from telegram.error import Forbidden as TGForbidden
+
     db = app.bot_data["db_session"]()
     try:
         today = today_mexico()
-        # Find users who checked in yesterday but NOT today (active streamers at risk)
         yesterday = today - timedelta(days=1)
         at_risk = (
             db.query(User)
             .filter(
                 User.last_checkin == yesterday,
-                User.streak >= 3,
+                User.streak >= config.STREAK_REMINDER_MIN,
+                User.is_blocked == False,  # noqa: E712
+                User.is_banned == False,   # noqa: E712
             )
             .all()
         )
-        count = 0
+        count, blocked_now = 0, 0
         for user in at_risk:
             try:
                 await app.bot.send_message(
@@ -119,9 +128,125 @@ async def job_streak_reminder(app: Application) -> None:
                     parse_mode="HTML",
                 )
                 count += 1
+            except TGForbidden:
+                user.is_blocked = True
+                blocked_now += 1
             except Exception:
                 pass
-        logger.info("[Scheduler] Streak reminders sent to %d users.", count)
+        db.commit()
+        logger.info("[Scheduler] Streak reminders sent: %d ok, %d newly blocked.", count, blocked_now)
+    finally:
+        db.close()
+
+
+async def job_daily_digest(app: Application) -> None:
+    """
+    Runs at DAILY_DIGEST_HOUR every day.
+    Sends a daily stats summary to all admin IDs.
+    """
+    if not config.ADMIN_IDS:
+        return
+
+    db = app.bot_data["db_session"]()
+    try:
+        from sqlalchemy import func as sqlfunc
+        from models.checkin import CheckinLog
+        from datetime import timedelta
+
+        today       = today_mexico()
+        yesterday   = today - timedelta(days=1)
+        week_ago    = today - timedelta(days=7)
+
+        checkins_today     = db.query(CheckinLog).filter(CheckinLog.checkin_date == today).count()
+        checkins_yesterday = db.query(CheckinLog).filter(CheckinLog.checkin_date == yesterday).count()
+        total_users        = db.query(User).count()
+        active_7d          = db.query(User).filter(User.last_checkin >= week_ago).count()
+        new_today          = db.query(User).filter(
+            User.register_date >= today_mexico()
+        ).count()
+
+        delta = checkins_today - checkins_yesterday
+        delta_str = f"+{delta}" if delta >= 0 else str(delta)
+
+        text = (
+            f"<b>Daily Digest — {today.isoformat()}</b>\n"
+            f"{'─' * 28}\n\n"
+            f"Check-ins today:   <b>{checkins_today:,}</b> ({delta_str} vs yesterday)\n"
+            f"Active 7d:         <b>{active_7d:,}</b>\n"
+            f"New users today:   <b>{new_today:,}</b>\n"
+            f"Total users:       <b>{total_users:,}</b>"
+        )
+
+        for admin_id in config.ADMIN_IDS:
+            try:
+                await app.bot.send_message(admin_id, text=text, parse_mode="HTML")
+            except Exception:
+                pass
+
+        logger.info("[Scheduler] Daily digest sent to %d admins.", len(config.ADMIN_IDS))
+    finally:
+        db.close()
+
+
+async def job_churn_alert(app: Application) -> None:
+    """
+    Runs at CHURN_ALERT_HOUR every day.
+    Finds high-churn-risk users and notifies admins.
+    """
+    if not config.ADMIN_IDS:
+        return
+
+    db = app.bot_data["db_session"]()
+    try:
+        from datetime import timedelta
+        from services.ai_analytics_service import predict_churn_risk
+
+        cutoff = today_mexico() - timedelta(days=config.CHURN_ALERT_DAYS_INACTIVE)
+        at_risk_users = (
+            db.query(User)
+            .filter(
+                User.last_checkin.isnot(None),
+                User.last_checkin < cutoff,
+                User.is_banned == False,   # noqa: E712
+                User.is_blocked == False,  # noqa: E712
+            )
+            .order_by(User.last_checkin.asc())
+            .limit(50)
+            .all()
+        )
+
+        high_risk = []
+        for user in at_risk_users:
+            days_since = (today_mexico() - user.last_checkin).days if user.last_checkin else 999
+            result = predict_churn_risk({
+                "streak":        user.streak,
+                "total_checkin": user.total_checkin,
+                "days_since_last": days_since,
+                "task_completion": 0.0,
+                "has_referrals": user.referral_count > 0,
+            })
+            if result["risk"] == "high":
+                high_risk.append((user, days_since, result))
+
+        if not high_risk:
+            return
+
+        lines = [f"<b>Churn Alert — {len(high_risk)} high-risk users</b>\n"]
+        for user, days, r in high_risk[:20]:
+            lines.append(
+                f"  {user.display_name} (streak={user.streak}, inactive {days}d) — {r['reason']}"
+            )
+        if len(high_risk) > 20:
+            lines.append(f"  ... and {len(high_risk) - 20} more")
+
+        text = "\n".join(lines)
+        for admin_id in config.ADMIN_IDS:
+            try:
+                await app.bot.send_message(admin_id, text=text, parse_mode="HTML")
+            except Exception:
+                pass
+
+        logger.info("[Scheduler] Churn alert sent: %d high-risk users.", len(high_risk))
     finally:
         db.close()
 
@@ -193,9 +318,8 @@ def build_application() -> Application:
     broadcast_conversation = ConversationHandler(
         entry_points=[CommandHandler("broadcast", broadcast_start)],
         states={
-            BROADCAST_TEXT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, broadcast_send)
-            ],
+            BROADCAST_TEXT:    [MessageHandler(filters.TEXT & ~filters.COMMAND, broadcast_send)],
+            BROADCAST_CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, broadcast_confirm)],
         },
         fallbacks=[CommandHandler("cancel", broadcast_cancel)],
         per_message=False,
@@ -220,6 +344,9 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("addpoints", addpoints_handler))
     app.add_handler(CommandHandler("resetstreak", resetstreak_handler))
     app.add_handler(CommandHandler("userinfo", userinfo_handler))
+    app.add_handler(CommandHandler("ban", ban_handler))
+    app.add_handler(CommandHandler("unban", unban_handler))
+    app.add_handler(CommandHandler("deleteuser", deleteuser_handler))
 
     # Inline keyboard callback dispatcher (catch-all)
     app.add_handler(CallbackQueryHandler(menu_callback_handler))
@@ -242,32 +369,40 @@ def build_application() -> Application:
 # ─────────────────────────────────────────────────────────────
 def setup_scheduler(app: Application) -> AsyncIOScheduler:
     """Configure APScheduler jobs and attach them to the app."""
-    scheduler = AsyncIOScheduler(timezone="America/Mexico_City")
+    scheduler = AsyncIOScheduler(timezone=config.BOT_TIMEZONE)
 
     # Daily reset at midnight
     scheduler.add_job(
         lambda: asyncio.ensure_future(job_reset_daily_stats(app)),
-        trigger="cron",
-        hour=0,
-        minute=0,
+        trigger="cron", hour=0, minute=0,
         id="daily_reset",
     )
 
-    # Streak reminder at 18:00
+    # Streak reminder
     scheduler.add_job(
         lambda: asyncio.ensure_future(job_streak_reminder(app)),
-        trigger="cron",
-        hour=18,
-        minute=0,
+        trigger="cron", hour=config.STREAK_REMINDER_HOUR, minute=0,
         id="streak_reminder",
+    )
+
+    # Daily digest to admins
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(job_daily_digest(app)),
+        trigger="cron", hour=config.DAILY_DIGEST_HOUR, minute=0,
+        id="daily_digest",
+    )
+
+    # Churn risk alert to admins
+    scheduler.add_job(
+        lambda: asyncio.ensure_future(job_churn_alert(app)),
+        trigger="cron", hour=config.CHURN_ALERT_HOUR, minute=0,
+        id="churn_alert",
     )
 
     # Database backup at 03:00
     scheduler.add_job(
         lambda: asyncio.ensure_future(job_backup_db(app)),
-        trigger="cron",
-        hour=3,
-        minute=0,
+        trigger="cron", hour=3, minute=0,
         id="db_backup",
     )
 

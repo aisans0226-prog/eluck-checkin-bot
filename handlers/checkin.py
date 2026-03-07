@@ -12,15 +12,17 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from models.user import User
-from services.checkin_service import get_or_create_user, perform_checkin
+from services.checkin_service import get_or_create_user, perform_checkin, can_use_streak_freeze
 from services.event_service import (
     log_event,
     EVT_BTN_CHECKIN, EVT_CMD_CHECKIN,
     EVT_CHECKIN_SUCCESS, EVT_CHECKIN_ALREADY, EVT_CHECKIN_ABANDON,
-    EVT_GAME_ID_REGISTER,
+    EVT_GAME_ID_REGISTER, EVT_STREAK_FREEZE,
 )
 from utils.keyboard import checkin_success_keyboard, back_to_menu_keyboard
-from utils.helpers import format_points, format_streak_bar, rate_limited, safe_edit_or_reply
+from utils.helpers import (
+    format_points, format_streak_bar, rate_limited, safe_edit_or_reply, get_user_lang,
+)
 from utils.i18n import t
 import config
 
@@ -29,11 +31,15 @@ logger = logging.getLogger(__name__)
 # ConversationHandler states
 WAITING_GAME_ID = 1
 
+# Game ID validation pattern built from config (avoids hardcoded 4-20)
+_GAME_ID_RE = re.compile(
+    rf"^\d{{{config.GAME_ID_MIN_LEN},{config.GAME_ID_MAX_LEN}}}$"
+)
+
 
 def _get_lang(db, telegram_id: int) -> str:
-    """Fetch stored language for a Telegram user."""
-    user = db.query(User).filter(User.telegram_id == telegram_id).first()
-    return user.language if user else "en"
+    """Fetch stored language for a Telegram user — delegates to shared helper."""
+    return get_user_lang(db, telegram_id)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -64,6 +70,16 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         evt = EVT_BTN_CHECKIN if update.callback_query else EVT_CMD_CHECKIN
         log_event(db, tg_user.id, evt)
 
+        # ── Banned users cannot check in ─────────────────────
+        if user.is_banned:
+            await safe_edit_or_reply(
+                update,
+                text=t("banned_message", lang),
+                reply_markup=back_to_menu_keyboard(lang),
+                parse_mode="HTML",
+            )
+            return ConversationHandler.END
+
         # ── No game ID yet — enter conversation ───────────────
         if not user.game_id:
             log_event(db, tg_user.id, EVT_CHECKIN_ABANDON, {"reason": "no_game_id"})
@@ -88,10 +104,13 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 parse_mode="HTML",
             )
         else:
+            if result.freeze_used:
+                log_event(db, tg_user.id, EVT_STREAK_FREEZE, {"streak": result.streak})
             log_event(db, tg_user.id, EVT_CHECKIN_SUCCESS, {
                 "streak": result.streak,
                 "points": result.points_earned,
                 "bonus":  result.streak_bonus,
+                "freeze": result.freeze_used,
             })
             await _send_checkin_success(update, user, result, lang)
 
@@ -117,8 +136,8 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     lang = _get_lang(db, tg_user.id)
     db.close()
 
-    # Validate: numeric, 4–20 chars
-    if not re.match(r"^\d{4,20}$", text):
+    # Validate: numeric, length from config
+    if not re.match(rf"^\d{{{config.GAME_ID_MIN_LEN},{config.GAME_ID_MAX_LEN}}}$", text):
         await update.message.reply_text(
             t("invalid_game_id", lang),
             parse_mode="HTML",
@@ -128,6 +147,15 @@ async def receive_game_id(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     db = context.bot_data["db_session"]()
 
     try:
+        # Check for duplicate game_id
+        existing_owner = db.query(User).filter(User.game_id == text).first()
+        if existing_owner and existing_owner.telegram_id != tg_user.id:
+            await update.message.reply_text(
+                t("game_id_taken", lang),
+                parse_mode="HTML",
+            )
+            return WAITING_GAME_ID  # ask again
+
         user = db.query(User).filter(User.telegram_id == tg_user.id).first()
         if not user:
             await update.message.reply_text(t("start_first", lang))
@@ -224,6 +252,11 @@ async def _send_checkin_success(
             bonus=format_points(result.streak_bonus),
         )
 
+    freeze_line = ""
+    if result.freeze_used:
+        remaining = config.STREAK_FREEZE_PER_MONTH - user.streak_freeze_used
+        freeze_line = "\n" + t("freeze_used_notice", lang, remaining=remaining)
+
     reg_line = t("game_id_registered", lang) if new_registration else ""
 
     text = (
@@ -231,7 +264,8 @@ async def _send_checkin_success(
         f"{t('streak_line', lang, streak=result.streak, days=day_word, bar=streak_bar)}\n"
         f"{t('total_checkins_line', lang, total=result.total_checkins)}\n"
         f"{t('points_earned_line', lang, pts=result.points_earned)}"
-        f"{bonus_line}\n\n"
+        f"{bonus_line}"
+        f"{freeze_line}\n\n"
         f"{t('game_id_line', lang, game_id=user.game_id)}"
     )
 

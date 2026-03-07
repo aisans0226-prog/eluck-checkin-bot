@@ -123,12 +123,28 @@ def complete_task(db: Session, user: User, task_id: str) -> tuple[bool, int]:
     return True, reward
 
 
-def add_points(db: Session, user: User, points: int, reason: str = "admin") -> int:
+def add_points(db: Session, user: User, points: int, reason: str = "admin", admin_id: int | None = None) -> int:
     """
     Directly add (or subtract) points to a user. Used by admin commands.
+    Writes an audit row to user_events for full traceability.
     Returns new total.
     """
+    old_total = user.points
     user.points = max(0, user.points + points)
     db.flush()
-    logger.info("Points adjusted: uid=%s delta=%+d reason=%s", user.telegram_id, points, reason)
+
+    # Persist audit record via event system
+    from services.event_service import log_event, EVT_ADMIN_POINTS
+    log_event(db, user.telegram_id, EVT_ADMIN_POINTS, {
+        "delta": points,
+        "old_total": old_total,
+        "new_total": user.points,
+        "reason": reason,
+        "admin_id": admin_id,
+    })
+
+    logger.info(
+        "Points adjusted: uid=%s delta=%+d old=%d new=%d reason=%s",
+        user.telegram_id, points, old_total, user.points, reason,
+    )
     return user.points

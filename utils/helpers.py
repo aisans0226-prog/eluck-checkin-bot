@@ -132,6 +132,20 @@ def build_referral_link(telegram_id: int) -> str:
 
 
 # ─────────────────────────────────────────────────────────────
+# Language helper — single source, replaces _get_lang in handlers
+# ─────────────────────────────────────────────────────────────
+def get_user_lang(db, telegram_id: int) -> str:
+    """
+    Fetch stored language preference for a user.
+    Falls back to 'en' if user not found.
+    Import this instead of duplicating _get_lang in each handler.
+    """
+    from models.user import User
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    return (user.language if user else None) or "en"
+
+
+# ─────────────────────────────────────────────────────────────
 # Safe send — edit OR send new message (for callback handlers)
 # ─────────────────────────────────────────────────────────────
 async def safe_edit_or_reply(update: Update, text: str, reply_markup=None, parse_mode="HTML"):

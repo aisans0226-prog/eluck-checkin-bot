@@ -124,3 +124,22 @@ def _run_migrations(engine) -> None:
             pass
         except Exception as exc:
             logger.warning("Migration warning (scheduled_broadcasts.target_game_ids): %s", exc)
+
+        # Add moderation and streak freeze columns to users
+        _add_column(conn, "users", "is_blocked", "BOOLEAN NOT NULL DEFAULT 0")
+        _add_column(conn, "users", "is_banned", "BOOLEAN NOT NULL DEFAULT 0")
+        _add_column(conn, "users", "streak_freeze_used", "INTEGER NOT NULL DEFAULT 0")
+        _add_column(conn, "users", "streak_freeze_month", "VARCHAR(7)")
+
+
+def _add_column(conn, table: str, column: str, definition: str) -> None:
+    """Helper: add a column if it does not already exist (silently skip if it does)."""
+    import sqlalchemy
+    try:
+        conn.execute(sqlalchemy.text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        conn.commit()
+        logger.info("Migration applied: %s.%s column added", table, column)
+    except sqlalchemy.exc.OperationalError:
+        pass  # column already exists
+    except Exception as exc:
+        logger.warning("Migration warning (%s.%s): %s", table, column, exc)
