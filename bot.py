@@ -30,6 +30,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 from database import init_db
 from utils.helpers import today_mexico
+from models.user import User
 
 # ── Handlers ─────────────────────────────────────────────────
 from handlers.start import start_handler
@@ -97,10 +98,10 @@ async def job_streak_reminder(app: Application) -> None:
         # Find users who checked in yesterday but NOT today (active streamers at risk)
         yesterday = today - timedelta(days=1)
         at_risk = (
-            db.query(__import__("models.user", fromlist=["User"]).User)
+            db.query(User)
             .filter(
-                __import__("models.user", fromlist=["User"]).User.last_checkin == yesterday,
-                __import__("models.user", fromlist=["User"]).User.streak >= 3,
+                User.last_checkin == yesterday,
+                User.streak >= 3,
             )
             .all()
         )

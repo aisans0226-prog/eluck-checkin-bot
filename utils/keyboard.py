@@ -5,14 +5,16 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from utils.i18n import t
 import config
+import database
 from models.bot_config import get_config
-from database import SessionLocal
 
 
 def _get_link(key: str, fallback: str) -> str:
     """Read a link from DB config, falling back to config.py value."""
     try:
-        db = SessionLocal()
+        if database.SessionLocal is None:
+            return fallback
+        db = database.SessionLocal()
         val = get_config(db, key)
         db.close()
         return val if val else fallback
@@ -23,7 +25,9 @@ def _get_link(key: str, fallback: str) -> str:
 def _get_bool(key: str, fallback: bool) -> bool:
     """Read a boolean flag from DB config."""
     try:
-        db = SessionLocal()
+        if database.SessionLocal is None:
+            return fallback
+        db = database.SessionLocal()
         val = get_config(db, key)
         db.close()
         return val.lower() == "true" if val else fallback

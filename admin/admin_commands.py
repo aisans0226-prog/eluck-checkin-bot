@@ -11,7 +11,7 @@
 
 import io
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import pandas as pd
 from telegram import Update
@@ -21,7 +21,7 @@ from models.user import User
 from models.checkin import CheckinLog
 from services.checkin_service import get_checkins_today
 from services.reward_service import add_points
-from utils.helpers import admin_only, format_points
+from utils.helpers import admin_only, format_points, today_mexico
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         # Active users = checked in within last 7 days
         from datetime import timedelta
-        cutoff = date.today() - timedelta(days=7)
+        cutoff = today_mexico() - timedelta(days=7)
         active_users = (
             db.query(User)
             .filter(User.last_checkin >= cutoff)
@@ -65,7 +65,7 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             f"📅 Check-ins today:     <b>{checkins_today:,}</b>\n"
             f"🔥 Active (7d):         <b>{active_users:,}</b>\n"
             f"📈 Avg streak:          <b>{avg_streak:.1f} days</b>\n\n"
-            f"🕐 Report time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+            f"🕐 Report time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         )
 
         await update.message.reply_text(text, parse_mode="HTML")

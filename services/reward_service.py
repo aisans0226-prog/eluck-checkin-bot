@@ -3,7 +3,7 @@
 # ============================================================
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -55,7 +55,7 @@ def complete_task(db: Session, user: User, task_id: str) -> tuple[bool, int]:
     # Validate prerequisite for type=streak
     if task_def.get("type") == "streak":
         required = task_def.get("required_count", 1)
-        if user.streak < required and user.total_checkin < required:
+        if user.streak < required or user.total_checkin < required:
             return False, 0
 
     reward = task_def["reward"]
@@ -64,14 +64,14 @@ def complete_task(db: Session, user: User, task_id: str) -> tuple[bool, int]:
     if existing:
         existing.completed = True
         existing.points_awarded = reward
-        existing.completed_at = datetime.utcnow()
+        existing.completed_at = datetime.now(timezone.utc)
     else:
         record = UserTask(
             user_id=user.id,
             task_id=task_id,
             completed=True,
             points_awarded=reward,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
         db.add(record)
 

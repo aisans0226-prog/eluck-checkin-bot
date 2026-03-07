@@ -26,6 +26,18 @@ logger = logging.getLogger(__name__)
 
 # ── Rate-limit tracker: {telegram_id: last_call_timestamp} ───
 _rate_limit_cache: dict[int, float] = {}
+_RATE_CACHE_MAX_SIZE = 10_000
+_RATE_CACHE_TTL = 300  # evict entries older than 5 minutes
+
+
+def _cleanup_rate_cache(now: float) -> None:
+    """Remove stale entries to prevent unbounded memory growth."""
+    if len(_rate_limit_cache) < _RATE_CACHE_MAX_SIZE:
+        return
+    cutoff = now - _RATE_CACHE_TTL
+    stale = [uid for uid, ts in _rate_limit_cache.items() if ts < cutoff]
+    for uid in stale:
+        del _rate_limit_cache[uid]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -38,6 +50,7 @@ def rate_limited(func: Callable) -> Callable:
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id if update.effective_user else 0
         now = time.monotonic()
+        _cleanup_rate_cache(now)
         last = _rate_limit_cache.get(user_id, 0)
         if now - last < config.RATE_LIMIT_SECONDS:
             # Silently ignore — do NOT answer to avoid flooding answers

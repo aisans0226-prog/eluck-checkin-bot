@@ -2,7 +2,7 @@
 # models/user.py — User ORM model
 # ============================================================
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from sqlalchemy import BigInteger, String, Integer, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -26,7 +26,7 @@ class User(Base):
     game_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     # Timestamps
-    register_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    register_date: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_checkin: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Check-in stats

@@ -2,7 +2,7 @@
 # models/referral.py — Referral relationship ORM model
 # ============================================================
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import BigInteger, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -31,7 +31,7 @@ class Referral(Base):
     )
 
     points_awarded: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # ── Relationships ─────────────────────────────────────────
     referrer = relationship("User", foreign_keys=[referrer_id], back_populates="referrals_made")

@@ -8,7 +8,6 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from database import init_db
 from services.checkin_service import get_or_create_user
 from services.referral_service import process_referral
 from utils.keyboard import main_menu_keyboard

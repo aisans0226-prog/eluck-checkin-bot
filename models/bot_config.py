@@ -3,7 +3,7 @@
 # Overrides .env defaults; editable from the admin dashboard
 # ============================================================
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from database import Base
@@ -20,7 +20,9 @@ class BotConfig(Base):
 
     description: Mapped[str] = mapped_column(String(256), default="")
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     def __repr__(self) -> str:
@@ -40,7 +42,7 @@ def set_config(db, key: str, value, description: str = ""):
     row = db.query(BotConfig).filter(BotConfig.key == key).first()
     if row:
         row.value = str(value)
-        row.updated_at = datetime.utcnow()
+        row.updated_at = datetime.now(timezone.utc)
     else:
         row = BotConfig(key=key, value=str(value), description=description)
         db.add(row)

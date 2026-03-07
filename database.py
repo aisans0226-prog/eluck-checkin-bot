@@ -65,10 +65,14 @@ def init_db(database_url: str):
     - Create all tables (if they don't exist)
     - Return SessionLocal factory
     """
-    from models.user import User          # noqa: F401 — import triggers table registration
-    from models.checkin import CheckinLog  # noqa: F401
-    from models.referral import Referral   # noqa: F401
-    from models.task import UserTask        # noqa: F401
+    from models.user import User                        # noqa: F401 — import triggers table registration
+    from models.checkin import CheckinLog               # noqa: F401
+    from models.referral import Referral                # noqa: F401
+    from models.task import UserTask                    # noqa: F401
+    from models.bot_config import BotConfig             # noqa: F401
+    from models.task_definition import TaskDefinition   # noqa: F401
+    from models.dashboard_user import DashboardUser     # noqa: F401
+    from models.audit_log import AuditLog               # noqa: F401
 
     engine = _get_engine(database_url)
     Base.metadata.create_all(bind=engine)
@@ -88,16 +92,19 @@ def init_db(database_url: str):
 
 def _run_migrations(engine) -> None:
     """Apply lightweight additive schema migrations that create_all won't handle."""
+    import sqlalchemy
     with engine.connect() as conn:
         # Add 'language' column to users table (introduced for i18n support)
         try:
             conn.execute(
-                __import__("sqlalchemy").text(
+                sqlalchemy.text(
                     "ALTER TABLE users ADD COLUMN language VARCHAR(8) NOT NULL DEFAULT 'en'"
                 )
             )
             conn.commit()
             logger.info("Migration applied: users.language column added")
-        except Exception:
-            # Column already exists — ignore
+        except sqlalchemy.exc.OperationalError:
+            # Column already exists — expected on every run after first migration
             pass
+        except Exception as exc:
+            logger.warning("Migration warning (users.language): %s", exc)

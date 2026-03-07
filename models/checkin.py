@@ -2,7 +2,7 @@
 # models/checkin.py — Daily check-in log ORM model
 # ============================================================
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from sqlalchemy import Integer, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -21,7 +21,7 @@ class CheckinLog(Base):
     checkin_date: Mapped[date] = mapped_column(Date, nullable=False)
     points_earned: Mapped[int] = mapped_column(Integer, default=0)
     streak_at_checkin: Mapped[int] = mapped_column(Integer, default=1)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # ── Relationship ──────────────────────────────────────────
     user = relationship("User", back_populates="checkin_logs")
