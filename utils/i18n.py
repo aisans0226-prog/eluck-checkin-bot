@@ -62,6 +62,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Profile
         "profile_header": "👤 <b>USER PROFILE</b>",
         "telegram_label": "Telegram",
+        "uid_label": "🆔 UID",
+        "language_label": "🌐 Language",
+        "timezone_label": "🕐 Timezone",
+        "weekly_progress_label": "📅 Weekly Progress",
+        "next_checkin_label": "⏰ Next Check-in",
+        "recent_checkins_label": "📋 Recent Check-ins",
         "game_id_label": "🎮 Game ID",
         "game_id_notset": "<i>Not set — click Check-in to register</i>",
         "streak_label": "🔥 Current Streak",
@@ -70,6 +76,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "referrals_label": "👥 Referrals",
         "referral_points_label": "🎁 Referral Points",
         "profile_not_found": "⚠️ Profile not found. Please send /start first.",
+        # Timezone
+        "timezone_menu_header": (
+            "🕐 <b>Choose your timezone</b>\n\n"
+            "Select the timezone that matches your location:"
+        ),
+        "timezone_changed": "✅ Timezone set to <b>{tz}</b>.",
+        "btn_set_timezone": "🕐 Set Timezone",
         # Referral
         "referral_header": "🔗 <b>Your Referral Link</b>",
         "total_referrals_label": "👥 Total Referrals",
@@ -217,6 +230,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Profile
         "profile_header": "👤 <b>PERFIL DO USUÁRIO</b>",
         "telegram_label": "Telegram",
+        "uid_label": "🆔 UID",
+        "language_label": "🌐 Idioma",
+        "timezone_label": "🕐 Fuso Horário",
+        "weekly_progress_label": "📅 Progresso Semanal",
+        "next_checkin_label": "⏰ Próximo Check-in",
+        "recent_checkins_label": "📋 Check-ins Recentes",
         "game_id_label": "🎮 ID do Jogo",
         "game_id_notset": "<i>Não definido — clique em Check-in para registrar</i>",
         "streak_label": "🔥 Sequência Atual",
@@ -225,6 +244,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "referrals_label": "👥 Indicações",
         "referral_points_label": "🎁 Pontos de Indicação",
         "profile_not_found": "⚠️ Perfil não encontrado. Por favor envie /start primeiro.",
+        # Timezone
+        "timezone_menu_header": (
+            "🕐 <b>Escolha seu fuso horário</b>\n\n"
+            "Selecione o fuso horário da sua localização:"
+        ),
+        "timezone_changed": "✅ Fuso horário definido para <b>{tz}</b>.",
+        "btn_set_timezone": "🕐 Definir Fuso Horário",
         # Referral
         "referral_header": "🔗 <b>Seu Link de Indicação</b>",
         "total_referrals_label": "👥 Total de Indicações",
@@ -346,6 +372,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Profile
         "profile_header": "👤 <b>用户资料</b>",
         "telegram_label": "Telegram",
+        "uid_label": "🆔 UID",
+        "language_label": "🌐 语言",
+        "timezone_label": "🕐 时区",
+        "weekly_progress_label": "📅 本周进度",
+        "next_checkin_label": "⏰ 下次签到",
+        "recent_checkins_label": "📋 最近签到",
         "game_id_label": "🎮 游戏ID",
         "game_id_notset": "<i>未设置 — 点击签到以注册</i>",
         "streak_label": "🔥 当前连续天数",
@@ -354,6 +386,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "referrals_label": "👥 推荐人数",
         "referral_points_label": "🎁 推荐积分",
         "profile_not_found": "⚠️ 未找到个人资料。请先发送 /start。",
+        # Timezone
+        "timezone_menu_header": (
+            "🕐 <b>选择您的时区</b>\n\n"
+            "请选择与您所在位置匹配的时区："
+        ),
+        "timezone_changed": "✅ 时区已设置为 <b>{tz}</b>。",
+        "btn_set_timezone": "🕐 设置时区",
         # Referral
         "referral_header": "🔗 <b>您的推荐链接</b>",
         "total_referrals_label": "👥 总推荐人数",
@@ -475,6 +514,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Profile
         "profile_header": "👤 <b>PERFIL DE USUARIO</b>",
         "telegram_label": "Telegram",
+        "uid_label": "🆔 UID",
+        "language_label": "🌐 Idioma",
+        "timezone_label": "🕐 Zona Horaria",
+        "weekly_progress_label": "📅 Progreso Semanal",
+        "next_checkin_label": "⏰ Próximo Check-in",
+        "recent_checkins_label": "📋 Check-ins Recientes",
         "game_id_label": "🎮 ID de Juego",
         "game_id_notset": "<i>No configurado — haz Click en Check-in para registrar</i>",
         "streak_label": "🔥 Racha Actual",
@@ -483,6 +528,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "referrals_label": "👥 Referidos",
         "referral_points_label": "🎁 Puntos de Referido",
         "profile_not_found": "⚠️ Perfil no encontrado. Por favor envía /start primero.",
+        # Timezone
+        "timezone_menu_header": (
+            "🕐 <b>Elige tu zona horaria</b>\n\n"
+            "Selecciona la zona horaria de tu ubicación:"
+        ),
+        "timezone_changed": "✅ Zona horaria establecida en <b>{tz}</b>.",
+        "btn_set_timezone": "🕐 Zona Horaria",
         # Referral
         "referral_header": "🔗 <b>Tu Enlace de Referido</b>",
         "total_referrals_label": "👥 Total de Referidos",
@@ -604,6 +656,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         # Profile
         "profile_header": "👤 <b>PERFIL DE USUARIO</b>",
         "telegram_label": "Telegram",
+        "uid_label": "🆔 UID",
+        "language_label": "🌐 Idioma",
+        "timezone_label": "🕐 Zona Horaria",
+        "weekly_progress_label": "📅 Progreso Semanal",
+        "next_checkin_label": "⏰ Próximo Check-in",
+        "recent_checkins_label": "📋 Check-ins Recientes",
         "game_id_label": "🎮 ID de Juego",
         "game_id_notset": "<i>No configurado — haz Check-in para registrar</i>",
         "streak_label": "🔥 Racha Actual",
@@ -612,6 +670,13 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "referrals_label": "👥 Referidos",
         "referral_points_label": "🎁 Puntos por Referidos",
         "profile_not_found": "⚠️ Perfil no encontrado. Por favor envía /start primero.",
+        # Timezone
+        "timezone_menu_header": (
+            "🕐 <b>Elige tu zona horaria</b>\n\n"
+            "Selecciona la zona horaria de tu ubicación:"
+        ),
+        "timezone_changed": "✅ Zona horaria establecida en <b>{tz}</b>.",
+        "btn_set_timezone": "🕐 Zona Horaria",
         # Referral
         "referral_header": "🔗 <b>Tu Enlace de Referido</b>",
         "total_referrals_label": "👥 Total Referidos",

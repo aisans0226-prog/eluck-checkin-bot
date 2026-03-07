@@ -2,141 +2,688 @@
 {% block title %}User — {{ user.display_name }}{% endblock %}
 {% block breadcrumb %}Dashboard / <a href="/users" class="text-decoration-none text-purple">Users</a> / {{ user.display_name }}{% endblock %}
 
+{% block head %}
+<style>
+  .kpi-card {
+    background: linear-gradient(135deg,#1a1a2e,#1e1e38);
+    border: 1px solid #2a2a4a; border-radius: 10px; padding: .85rem .9rem;
+  }
+  .kpi-val  { font-size: 1.35rem; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+  .kpi-lbl  { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .heatmap-cell {
+    width: 11px; height: 11px; border-radius: 2px;
+    cursor: default; transition: transform .1s;
+  }
+  .heatmap-cell:hover { transform: scale(1.5); }
+  .event-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; margin-top: 5px; }
+  .event-line { border-left: 1px solid #2a2a4a; padding-left: .75rem; margin-left: 3px; }
+  .tab-btn {
+    background: transparent; border: 1px solid #2a2a4a; color: #94a3b8;
+    border-radius: 8px; padding: 4px 13px; font-size: .82rem; cursor: pointer; transition: all .15s;
+  }
+  .tab-btn:hover, .tab-btn.active { background: rgba(111,66,193,.22); border-color: #6f42c1; color: #a78bfa; }
+  .churn-bar  { height: 6px; border-radius: 3px; background: #1e1e38; overflow: hidden; }
+  .churn-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  #heatmap-tooltip {
+    display: none; position: fixed; background: #1e1e38; border: 1px solid #2a2a4a;
+    border-radius: 6px; padding: 4px 10px; font-size: .75rem; pointer-events: none; z-index: 9999;
+    color: #e2e8f0;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row g-3">
-  <!-- LEFT: Profile card -->
-  <div class="col-lg-4">
-    <div class="glass p-4 mb-3">
+<!-- ═══ ROW 1: Profile card + KPI grid ═══ -->
+<div class="row g-3 mb-3">
+
+  <!-- Profile Card -->
+  <div class="col-lg-3">
+    <div class="glass p-4 d-flex flex-column h-100">
       <div class="text-center mb-3">
-        <div class="avatar mx-auto mb-2" style="width:56px;height:56px;font-size:1.4rem">
+        <div class="avatar mx-auto mb-2" style="width:58px;height:58px;font-size:1.5rem">
           {{ (user.first_name or user.username or 'U')[0].upper() }}
         </div>
         <div class="fw-bold">{{ user.display_name }}</div>
-        <div class="text-muted font-monospace" style="font-size:.75rem">ID: {{ user.telegram_id }}</div>
-      </div>
-
-      <hr class="border-secondary my-3" />
-
-      <div class="row g-2 text-center mb-3">
-        <div class="col-4">
-          <div class="fw-bold text-warning">🔥{{ user.streak }}</div>
-          <div style="font-size:.65rem;color:#64748b">STREAK</div>
-        </div>
-        <div class="col-4">
-          <div class="fw-bold text-success">{{ user.total_checkin }}</div>
-          <div style="font-size:.65rem;color:#64748b">CHECK-INS</div>
-        </div>
-        <div class="col-4">
-          <div class="fw-bold text-purple">{{ "{:,}".format(user.points) }}</div>
-          <div style="font-size:.65rem;color:#64748b">POINTS</div>
+        <div class="font-monospace text-muted" style="font-size:.72rem">ID: {{ user.telegram_id }}</div>
+        <div class="mt-2 d-flex flex-wrap gap-1 justify-content-center">
+          <span class="badge bg-{{ segment[2] }} bg-opacity-25 text-{{ segment[2] }}" style="font-size:.72rem">
+            {{ segment[1] }}
+          </span>
+          {% if user.is_banned %}
+            <span class="badge bg-danger bg-opacity-25 text-danger" style="font-size:.7rem">🚫 Banned</span>
+          {% endif %}
+          {% if user.is_blocked %}
+            <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size:.7rem">🔇 Blocked</span>
+          {% endif %}
+          {% if churn.ai_powered %}
+            <span class="badge bg-purple-soft text-purple" style="font-size:.7rem">🤖 AI</span>
+          {% endif %}
         </div>
       </div>
 
-      <dl class="mb-0" style="font-size:.82rem">
+      <hr class="border-secondary my-2">
+
+      <dl class="mb-0 flex-grow-1" style="font-size:.82rem">
         <dt class="text-muted mb-1">Game ID</dt>
         <dd class="mb-2">
           {% if user.game_id %}<code class="text-purple">{{ user.game_id }}</code>
           {% else %}<span class="text-muted">Not set</span>{% endif %}
         </dd>
+
+        <dt class="text-muted mb-1">Language / Timezone</dt>
+        <dd class="mb-2">
+          <span class="badge bg-secondary bg-opacity-25 text-muted">{{ user.language | upper }}</span>
+          <span class="text-muted ms-1" style="font-size:.72rem">{{ user.timezone or 'UTC' }}</span>
+        </dd>
+
         <dt class="text-muted mb-1">Registered</dt>
-        <dd class="mb-2">{{ user.register_date.strftime('%Y-%m-%d') }}</dd>
+        <dd class="mb-2">
+          {{ user.register_date.strftime('%Y-%m-%d') }}
+          <span class="text-muted" style="font-size:.72rem">({{ days_since_register }}d ago)</span>
+        </dd>
+
         <dt class="text-muted mb-1">Last Check-in</dt>
-        <dd class="mb-2">{{ user.last_checkin or 'Never' }}</dd>
-        <dt class="text-muted mb-1">Referrals Made</dt>
-        <dd class="mb-0">{{ referrals | length }}</dd>
+        <dd class="mb-2">
+          {% if user.last_checkin %}
+            {{ user.last_checkin }}
+            <span class="text-{{ 'danger' if days_inactive > 7 else ('warning' if days_inactive > 3 else 'success') }}"
+                  style="font-size:.72rem">({{ days_inactive }}d ago)</span>
+          {% else %}<span class="text-muted">Never</span>{% endif %}
+        </dd>
+
+        <dt class="text-muted mb-1">Streak Freeze</dt>
+        <dd class="mb-2">{{ user.streak_freeze_used }} used this month</dd>
+
+        {% if referred_by %}
+        <dt class="text-muted mb-1">Referred By</dt>
+        <dd class="mb-0">
+          <a href="/users/{{ referred_by.telegram_id }}" class="text-purple text-decoration-none">
+            {{ referred_by.display_name }}
+          </a>
+        </dd>
+        {% endif %}
       </dl>
-    </div>
-
-    <!-- Quick actions -->
-    <div class="glass p-3">
-      <div class="fw-semibold mb-2" style="font-size:.82rem;color:#a78bfa">⚡ Quick Actions</div>
-
-      <!-- Edit Game ID -->
-      <form method="POST" class="mb-2">
-        <input type="hidden" name="action" value="update">
-        <div class="input-group input-group-sm">
-          <input type="text" name="game_id" class="form-control" placeholder="New Game ID"
-            value="{{ user.game_id or '' }}">
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Update Game ID</div>
-      </form>
-
-      <!-- Add/subtract points -->
-      <form method="POST" class="mb-2">
-        <input type="hidden" name="action" value="add_points">
-        <div class="input-group input-group-sm">
-          <input type="number" name="delta" class="form-control" placeholder="+100 or -50">
-          <button type="submit" class="btn btn-success">Apply</button>
-        </div>
-        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Add / subtract points (negative = subtract)</div>
-      </form>
-
-      <!-- Set streak -->
-      <form method="POST" class="mb-2">
-        <input type="hidden" name="action" value="set_streak">
-        <div class="input-group input-group-sm">
-          <input type="number" name="streak" class="form-control" min="0" placeholder="New streak value"
-            value="{{ user.streak }}">
-          <button type="submit" class="btn btn-warning text-dark">Set</button>
-        </div>
-        <div style="font-size:.7rem;color:#64748b;margin-top:3px">Manually set streak</div>
-      </form>
-
-      <!-- Danger actions -->
-      <form method="POST" class="d-flex gap-1 mt-3" onsubmit="return confirm('Are you sure?')">
-        <input type="hidden" name="action" value="reset_streak">
-        <button type="submit" class="btn btn-sm btn-outline-warning flex-fill">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
-        </button>
-      </form>
     </div>
   </div>
 
-  <!-- RIGHT: History + Referrals -->
-  <div class="col-lg-8">
-    <!-- Referrals table -->
-    {% if referrals %}
-    <div class="glass p-3 mb-3">
-      <h6 class="fw-semibold mb-3">🔗 Referrals Made ({{ referrals | length }})</h6>
+  <!-- Right: KPI grid + Quick Actions -->
+  <div class="col-lg-9">
+
+    <!-- KPI cards row 1 (6 cols) -->
+    <div class="row g-2 mb-2">
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val text-warning">🔥{{ user.streak }}</div>
+          <div class="kpi-lbl">Streak</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val" style="color:#fb923c">{{ longest_streak }}</div>
+          <div class="kpi-lbl">Best Streak</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val text-success">{{ user.total_checkin }}</div>
+          <div class="kpi-lbl">Check-ins</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val text-purple">{{ "{:,}".format(user.points) }}</div>
+          <div class="kpi-lbl">Points</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val text-info">{{ consistency_pct }}%</div>
+          <div class="kpi-lbl">Consistency</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="kpi-card text-center">
+          <div class="kpi-val" style="color:#c084fc">{{ user.referral_count }}</div>
+          <div class="kpi-lbl">Referrals</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI cards row 2 (4 cols) -->
+    <div class="row g-2 mb-2">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card text-center">
+          <div class="kpi-val" style="font-size:1.1rem;color:#38bdf8">{{ avg_pts_per_day }}</div>
+          <div class="kpi-lbl">Avg Pts / Day</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card text-center">
+          <div class="kpi-val" style="font-size:1.1rem;
+            color:{{ '#f87171' if days_inactive > 7 else ('#fb923c' if days_inactive > 3 else '#4ade80') }}">
+            {{ days_inactive }}d
+          </div>
+          <div class="kpi-lbl">Days Inactive</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card text-center">
+          <div class="kpi-val" style="font-size:1.1rem">{{ completed_tasks }}/{{ total_tasks }}</div>
+          <div class="kpi-lbl">Tasks Done</div>
+        </div>
+      </div>
+      <!-- Churn Risk card -->
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="kpi-lbl">Churn Risk</span>
+            <span class="badge
+              {% if churn.risk == 'high' %}bg-danger text-danger
+              {% elif churn.risk == 'medium' %}bg-warning text-warning
+              {% else %}bg-success text-success{% endif %}
+              bg-opacity-25" style="font-size:.7rem">
+              {{ churn.risk | upper }}
+            </span>
+          </div>
+          <div class="churn-bar mb-1">
+            <div class="churn-fill
+              {% if churn.risk == 'high' %}bg-danger
+              {% elif churn.risk == 'medium' %}bg-warning
+              {% else %}bg-success{% endif %}"
+              style="width:{{ (churn.score * 100) | int }}%"></div>
+          </div>
+          <div style="font-size:.68rem;color:#64748b;line-height:1.3">{{ churn.reason }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="glass p-3">
+      <div class="fw-semibold mb-2" style="font-size:.8rem;color:#a78bfa">⚡ Quick Actions</div>
+      <div class="row g-2">
+        <div class="col-12 col-sm-4">
+          <form method="POST">
+            <input type="hidden" name="action" value="update">
+            <div class="input-group input-group-sm">
+              <input type="text" name="game_id" class="form-control" placeholder="New Game ID"
+                     value="{{ user.game_id or '' }}">
+              <button type="submit" class="btn btn-primary">Save ID</button>
+            </div>
+          </form>
+        </div>
+        <div class="col-12 col-sm-4">
+          <form method="POST">
+            <input type="hidden" name="action" value="add_points">
+            <div class="input-group input-group-sm">
+              <input type="number" name="delta" class="form-control" placeholder="+100 or -50">
+              <button type="submit" class="btn btn-success">Apply Pts</button>
+            </div>
+          </form>
+        </div>
+        <div class="col-12 col-sm-4">
+          <form method="POST">
+            <input type="hidden" name="action" value="set_streak">
+            <div class="input-group input-group-sm">
+              <input type="number" name="streak" class="form-control" min="0"
+                     placeholder="Streak" value="{{ user.streak }}">
+              <button type="submit" class="btn btn-warning text-dark">Set Streak</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-2 flex-wrap">
+        <form method="POST" onsubmit="return confirm('Reset streak to 0?')">
+          <input type="hidden" name="action" value="reset_streak">
+          <button type="submit" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Streak
+          </button>
+        </form>
+        <form method="POST" onsubmit="return confirm('Ban this user? This will clear game ID and reset streak.')">
+          <input type="hidden" name="action" value="ban_user">
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-slash-circle me-1"></i>Ban User
+          </button>
+        </form>
+        {% if user.game_id %}
+        <a href="/broadcast?target=game_id&target_game_ids={{ user.game_id }}"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-megaphone me-1"></i>Send Message
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ROW 2: Activity Heatmap ═══ -->
+<div class="glass p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="fw-semibold mb-0">📅 Check-in Activity (last 52 weeks)</h6>
+    <div class="d-flex align-items-center gap-2" style="font-size:.72rem;color:#64748b">
+      <span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#1e1e38;vertical-align:middle"></span>
+        No check-in
+      </span>
+      <span>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#7c3aed;vertical-align:middle"></span>
+        Check-in
+      </span>
+    </div>
+  </div>
+  <div style="overflow-x:auto;padding-bottom:4px">
+    <div style="display:inline-block;min-width:max-content">
+      <div id="heatmap-labels" style="position:relative;height:13px;margin-left:24px;margin-bottom:2px"></div>
+      <div style="display:flex;gap:2px">
+        <!-- Day-of-week labels -->
+        <div style="display:flex;flex-direction:column;gap:2px;margin-right:4px;width:18px">
+          <span style="font-size:.58rem;color:#475569;height:11px;line-height:11px">Mo</span>
+          <span style="font-size:.58rem;color:transparent;height:11px;line-height:11px">·</span>
+          <span style="font-size:.58rem;color:#475569;height:11px;line-height:11px">We</span>
+          <span style="font-size:.58rem;color:transparent;height:11px;line-height:11px">·</span>
+          <span style="font-size:.58rem;color:#475569;height:11px;line-height:11px">Fr</span>
+          <span style="font-size:.58rem;color:transparent;height:11px;line-height:11px">·</span>
+          <span style="font-size:.58rem;color:#475569;height:11px;line-height:11px">Su</span>
+        </div>
+        <div id="heatmap-grid" style="display:flex;gap:2px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="heatmap-tooltip"></div>
+
+<!-- ═══ ROW 3: Charts ═══ -->
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="glass p-3">
+      <h6 class="fw-semibold mb-3">📈 Streak Over Time <span style="font-size:.72rem;color:#64748b;font-weight:400">(last 90 entries)</span></h6>
+      <div class="chart-container"><canvas id="streakChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="glass p-3">
+      <h6 class="fw-semibold mb-3">💰 Cumulative Points <span style="font-size:.72rem;color:#64748b;font-weight:400">(last 90 entries)</span></h6>
+      <div class="chart-container"><canvas id="pointsChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ROW 4: Behavior summary bar ═══ -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="glass p-2 text-center">
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Most Used Feature</div>
+      <div class="fw-semibold text-purple" style="font-size:.85rem">{{ behavior.most_used_feature or '—' }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="glass p-2 text-center">
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Peak Hour (UTC)</div>
+      <div class="fw-semibold text-info" style="font-size:.85rem">{{ '%02d:00' % behavior.peak_hour }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="glass p-2 text-center">
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Engagement Score</div>
+      <div class="fw-semibold text-success" style="font-size:.85rem">{{ (behavior.engagement_score * 100) | int }}%</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="glass p-2 text-center">
+      <div class="text-muted mb-1" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em">Total Events Logged</div>
+      <div class="fw-semibold" style="font-size:.85rem">{{ recent_events | length }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ROW 5: Tabbed detail ═══ -->
+<div class="glass">
+  <!-- Tab navigation -->
+  <div class="p-3 border-bottom border-dark d-flex gap-2 flex-wrap">
+    <button class="tab-btn active" onclick="showTab('tab-history', this)">
+      <i class="bi bi-calendar3 me-1"></i>Check-in History
+      <span class="badge bg-secondary bg-opacity-50 ms-1">{{ history | length }}</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-tasks', this)">
+      <i class="bi bi-list-check me-1"></i>Tasks
+      <span class="badge bg-secondary bg-opacity-50 ms-1">{{ total_tasks }}</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-events', this)">
+      <i class="bi bi-activity me-1"></i>Event Log
+      <span class="badge bg-secondary bg-opacity-50 ms-1">{{ recent_events | length }}</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('tab-referrals', this)">
+      <i class="bi bi-diagram-3 me-1"></i>Referrals
+      <span class="badge bg-secondary bg-opacity-50 ms-1">{{ referrals | length }}</span>
+    </button>
+  </div>
+
+  <!-- Tab: Check-in History -->
+  <div id="tab-history" class="tab-pane p-3">
+    {% if history %}
+    <div style="overflow-x:auto">
       <table class="table table-sm mb-0">
-        <thead><tr><th>Referred User</th><th>Game ID</th><th>Date</th><th>Pts Earned</th></tr></thead>
-        <tbody>
-          {% for ref, ref_user in referrals %}
+        <thead>
           <tr>
-            <td><a href="/users/{{ ref_user.telegram_id }}" class="text-purple text-decoration-none">{{ ref_user.display_name }}</a></td>
-            <td class="text-muted font-monospace" style="font-size:.75rem">{{ ref_user.game_id or '—' }}</td>
-            <td class="text-muted">{{ ref.created_at.strftime('%Y-%m-%d') }}</td>
-            <td class="text-success">+{{ ref.points_awarded }}</td>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Streak</th>
+            <th>Points Earned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+          <tr>
+            <td class="font-monospace">{{ h.checkin_date }}</td>
+            <td class="text-muted" style="font-size:.78rem">{{ h.checkin_date.strftime('%a') }}</td>
+            <td><span class="badge badge-streak">🔥{{ h.streak_at_checkin }}</span></td>
+            <td class="text-success fw-semibold">+{{ h.points_earned }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% else %}
+    <p class="text-muted text-center py-4">No check-in history yet.</p>
     {% endif %}
+  </div>
 
-    <!-- Check-in history -->
-    <div class="glass p-3">
-      <h6 class="fw-semibold mb-3">📅 Check-in History (Last 30)</h6>
-      {% if history %}
-      <div style="overflow-x:auto">
-        <table class="table table-sm mb-0">
-          <thead><tr><th>Date</th><th>Streak</th><th>Points Earned</th></tr></thead>
-          <tbody>
-            {% for h in history %}
-            <tr>
-              <td class="font-monospace text-muted">{{ h.checkin_date }}</td>
-              <td><span class="badge badge-streak">🔥{{ h.streak_at_checkin }}</span></td>
-              <td class="text-success">+{{ h.points_earned }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-muted text-center py-3">No check-in history yet.</p>
-      {% endif %}
+  <!-- Tab: Tasks -->
+  <div id="tab-tasks" class="tab-pane p-3" style="display:none">
+    {% if user_tasks %}
+    <div style="overflow-x:auto">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Points</th>
+            <th>Completed At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ut, td in user_tasks %}
+          <tr>
+            <td>
+              <div class="fw-semibold" style="font-size:.85rem">{{ td.name if td else ut.task_id }}</div>
+              {% if td and td.description %}
+              <div class="text-muted" style="font-size:.72rem">{{ td.description[:70] }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if td %}
+              <span class="badge bg-secondary bg-opacity-25 text-muted" style="font-size:.7rem">{{ td.task_type }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if ut.completed %}
+              <span class="badge bg-success bg-opacity-20 text-success">✅ Done</span>
+              {% else %}
+              <span class="badge bg-secondary bg-opacity-20 text-muted">⬜ Pending</span>
+              {% endif %}
+            </td>
+            <td class="{{ 'text-success fw-semibold' if ut.completed else 'text-muted' }}">
+              {{ ('+' ~ ut.points_awarded) if ut.completed else '—' }}
+            </td>
+            <td class="text-muted" style="font-size:.78rem">
+              {{ ut.completed_at.strftime('%Y-%m-%d %H:%M') if ut.completed_at else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% else %}
+    <p class="text-muted text-center py-4">No task records yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Tab: Event Log -->
+  <div id="tab-events" class="tab-pane p-3" style="display:none">
+    {% if recent_events %}
+    <div style="max-height:500px;overflow-y:auto">
+      {% for ev in recent_events %}
+      <div class="d-flex gap-2 mb-2 align-items-start">
+        <span class="event-dot" style="background:
+          {%- if 'success' in ev.event_type -%}#4ade80
+          {%- elif 'error' in ev.event_type or 'fail' in ev.event_type -%}#f87171
+          {%- elif 'start' in ev.event_type -%}#a78bfa
+          {%- elif 'checkin' in ev.event_type -%}#fb923c
+          {%- else -%}#475569{%- endif -%}
+        "></span>
+        <div class="event-line flex-grow-1" style="min-width:0">
+          <div class="d-flex justify-content-between gap-2">
+            <span class="font-monospace text-muted" style="font-size:.78rem">{{ ev.event_type }}</span>
+            <span class="text-muted flex-shrink-0" style="font-size:.7rem">
+              {{ ev.created_at.strftime('%m-%d %H:%M') }}
+            </span>
+          </div>
+          {% if ev.meta %}
+          <div class="text-muted mt-0" style="font-size:.7rem;word-break:break-all">
+            {% for k, v in ev.meta.items() %}
+              <span class="text-muted">{{ k }}:</span>
+              <span class="text-purple">{{ v }}</span>
+              {% if not loop.last %}<span class="text-muted"> · </span>{% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-4">No events recorded yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Tab: Referrals -->
+  <div id="tab-referrals" class="tab-pane p-3" style="display:none">
+    {% if referrals %}
+    <div style="overflow-x:auto">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr>
+            <th>Referred User</th>
+            <th>Game ID</th>
+            <th>Date</th>
+            <th>Points Earned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ref, ref_user in referrals %}
+          <tr>
+            <td>
+              <a href="/users/{{ ref_user.telegram_id }}" class="text-purple text-decoration-none">
+                {{ ref_user.display_name }}
+              </a>
+            </td>
+            <td class="font-monospace text-muted" style="font-size:.78rem">{{ ref_user.game_id or '—' }}</td>
+            <td class="text-muted" style="font-size:.78rem">{{ ref.created_at.strftime('%Y-%m-%d') }}</td>
+            <td class="text-success fw-semibold">+{{ ref.points_awarded }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-4">This user has not referred anyone yet.</p>
+    {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tab switching ─────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).style.display = 'block';
+  btn.classList.add('active');
+}
+
+// ── Activity Heatmap ─────────────────────────────────────────
+(function() {
+  const CHECKIN_DATES = new Set({{ checkin_dates_json | safe }});
+  const WEEKS  = 53;
+  const grid   = document.getElementById('heatmap-grid');
+  const labels = document.getElementById('heatmap-labels');
+  const tip    = document.getElementById('heatmap-tooltip');
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Start date: WEEKS*7 days ago, rolled back to Monday
+  const start = new Date(today);
+  start.setDate(start.getDate() - WEEKS * 7 + 1);
+  const startDow = start.getDay(); // 0=Sun
+  const rollback = startDow === 0 ? 6 : startDow - 1;
+  start.setDate(start.getDate() - rollback);
+
+  const cur = new Date(start);
+  const CELL_W = 13; // 11px + 2px gap
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastMonthKey = '';
+
+  for (let w = 0; w < WEEKS + 1; w++) {
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex;flex-direction:column;gap:2px';
+
+    for (let d = 0; d < 7; d++) {
+      const ds = cur.toISOString().split('T')[0];
+      const future  = cur > today;
+      const hasCI   = CHECKIN_DATES.has(ds);
+
+      // Month labels on first row of month
+      if (d === 0 && !future) {
+        const mk = ds.slice(0, 7);
+        if (mk !== lastMonthKey) {
+          lastMonthKey = mk;
+          const lbl = document.createElement('span');
+          lbl.textContent = MONTHS[parseInt(ds.slice(5, 7)) - 1];
+          lbl.style.cssText =
+            `position:absolute;left:${w * CELL_W}px;font-size:.6rem;color:#475569;white-space:nowrap`;
+          labels.appendChild(lbl);
+        }
+      }
+
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.style.background = future ? '#0d0d14'
+        : hasCI ? '#7c3aed' : '#1e1e38';
+
+      const label = ds + (hasCI ? ' ✅ Check-in' : '');
+      cell.addEventListener('mouseenter', e => {
+        tip.textContent = label;
+        tip.style.display = 'block';
+      });
+      cell.addEventListener('mousemove', e => {
+        tip.style.left = (e.clientX + 12) + 'px';
+        tip.style.top  = (e.clientY - 32) + 'px';
+      });
+      cell.addEventListener('mouseleave', () => {
+        tip.style.display = 'none';
+      });
+
+      col.appendChild(cell);
+      cur.setDate(cur.getDate() + 1);
+    }
+    grid.appendChild(col);
+  }
+})();
+
+// ── Streak Chart ─────────────────────────────────────────────
+(function() {
+  const raw = {{ streak_chart | safe }};
+  if (!raw || !raw.length) return;
+  const ctx = document.getElementById('streakChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: raw.map(d => d.x),
+      datasets: [{
+        label: 'Streak',
+        data: raw.map(d => d.y),
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249,115,22,.08)',
+        borderWidth: 2,
+        pointRadius: raw.length > 30 ? 0 : 3,
+        pointHoverRadius: 4,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => 'Streak: ' + ctx.parsed.y,
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: { color: '#475569', font: { size: 9 }, maxTicksLimit: 6, maxRotation: 0 },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#1e1e38' },
+          ticks: { color: '#64748b', font: { size: 10 } },
+        }
+      }
+    }
+  });
+})();
+
+// ── Points Chart ─────────────────────────────────────────────
+(function() {
+  const raw = {{ points_chart | safe }};
+  if (!raw || !raw.length) return;
+  const ctx = document.getElementById('pointsChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: raw.map(d => d.x),
+      datasets: [{
+        label: 'Total Points',
+        data: raw.map(d => d.y),
+        borderColor: '#a78bfa',
+        backgroundColor: 'rgba(167,139,250,.08)',
+        borderWidth: 2,
+        pointRadius: raw.length > 30 ? 0 : 3,
+        pointHoverRadius: 4,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => 'Points: ' + ctx.parsed.y.toLocaleString(),
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: { color: '#475569', font: { size: 9 }, maxTicksLimit: 6, maxRotation: 0 },
+          grid: { display: false },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#1e1e38' },
+          ticks: { color: '#64748b', font: { size: 10 } },
+        }
+      }
+    }
+  });
+})();
+</script>
 {% endblock %}

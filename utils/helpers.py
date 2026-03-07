@@ -4,7 +4,7 @@
 
 import logging
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 from typing import Callable
 
@@ -21,6 +21,90 @@ MEXICO_TZ = pytz.timezone("America/Mexico_City")
 def today_mexico() -> date:
     """Return the current date in Mexico City timezone."""
     return datetime.now(MEXICO_TZ).date()
+
+
+# ── Per-user timezone helpers ─────────────────────────────────
+
+# Common timezone options shown in the selection menu.
+# Each entry: (display_label, iana_zone)
+TIMEZONE_OPTIONS: list[tuple[str, str]] = [
+    ("🇺🇸 UTC-8  (Los Angeles)",    "America/Los_Angeles"),
+    ("🇲🇽 UTC-6  (Mexico City)",    "America/Mexico_City"),
+    ("🇺🇸 UTC-5  (New York)",       "America/New_York"),
+    ("🇧🇷 UTC-3  (São Paulo)",      "America/Sao_Paulo"),
+    ("🇬🇧 UTC+0  (London)",         "Europe/London"),
+    ("🇪🇺 UTC+1  (Paris/Berlin)",   "Europe/Paris"),
+    ("🇷🇺 UTC+3  (Moscow)",         "Europe/Moscow"),
+    ("🇮🇳 UTC+5:30 (India)",        "Asia/Kolkata"),
+    ("🌏 UTC+7  (Bangkok/Hanoi)",   "Asia/Bangkok"),
+    ("🇨🇳 UTC+8  (Beijing/SG)",     "Asia/Shanghai"),
+    ("🇯🇵 UTC+9  (Tokyo/Seoul)",    "Asia/Tokyo"),
+    ("🇦🇺 UTC+10 (Sydney)",         "Australia/Sydney"),
+]
+
+# Map iana_zone → display_label for fast lookup
+_TZ_LABEL: dict[str, str] = {iana: label for label, iana in TIMEZONE_OPTIONS}
+
+
+def tz_label(iana_zone: str) -> str:
+    """Return the short display label for a timezone, e.g. 'UTC+7 (Bangkok/Hanoi)'."""
+    label = _TZ_LABEL.get(iana_zone)
+    if label:
+        # Strip the flag emoji, keep the rest
+        parts = label.split(" ", 1)
+        return parts[1] if len(parts) == 2 else label
+    return iana_zone
+
+
+def now_in_tz(iana_zone: str) -> datetime:
+    """Return the current datetime in the given IANA timezone."""
+    try:
+        tz = pytz.timezone(iana_zone)
+    except pytz.exceptions.UnknownTimeZoneError:
+        tz = MEXICO_TZ
+    return datetime.now(tz)
+
+
+def next_checkin_countdown(iana_zone: str) -> str:
+    """
+    Return a human-readable countdown string to midnight (next check-in window)
+    in the user's timezone.  E.g. '14h 32m' or '45m'.
+    """
+    now = now_in_tz(iana_zone)
+    midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    delta = midnight - now
+    total_seconds = int(delta.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes = remainder // 60
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def build_weekly_grid(checkin_dates: set[date], iana_zone: str) -> str:
+    """
+    Build a 7-day check-in grid ending today (user timezone).
+    Returns two rows: day-of-week labels and check/empty markers.
+    Example:
+        Mo Tu We Th Fr Sa Su
+        ✅ ✅ ✅ ✅ ✅ ⬜ ⬜
+    """
+    try:
+        tz = pytz.timezone(iana_zone)
+    except pytz.exceptions.UnknownTimeZoneError:
+        tz = MEXICO_TZ
+    today = datetime.now(tz).date()
+
+    day_labels = []
+    markers = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        day_labels.append(d.strftime("%a")[:2])   # Mo, Tu …
+        markers.append("✅" if d in checkin_dates else "⬜")
+
+    header = " ".join(day_labels)
+    row = " ".join(markers)
+    return f"<code>{header}</code>\n{row}"
 
 logger = logging.getLogger(__name__)
 

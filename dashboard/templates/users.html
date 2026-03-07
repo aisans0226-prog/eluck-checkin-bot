@@ -2,44 +2,107 @@
 {% block title %}Users{% endblock %}
 {% block breadcrumb %}Dashboard / Users{% endblock %}
 
+{% block head %}
+<style>
+  .sort-link { color: inherit; text-decoration: none; }
+  .sort-link:hover { color: #a78bfa; }
+  .sort-icon { font-size: .65rem; margin-left: 3px; }
+  .seg-new     { background: rgba(59,130,246,.15); color: #60a5fa; }
+  .seg-power   { background: rgba(34,197,94,.15);  color: #4ade80; }
+  .seg-at_risk { background: rgba(251,146,60,.15); color: #fb923c; }
+  .seg-churned { background: rgba(239,68,68,.15);  color: #f87171; }
+  .seg-regular { background: rgba(100,116,139,.12);color: #94a3b8; }
+  .page-link-btn {
+    background: #16162a; border: 1px solid #2a2a4a; color: #94a3b8;
+    border-radius: 6px; padding: 3px 10px; font-size: .8rem;
+    cursor: pointer; transition: all .15s; text-decoration: none; display: inline-block;
+  }
+  .page-link-btn:hover, .page-link-btn.active {
+    background: rgba(111,66,193,.25); border-color: #6f42c1; color: #a78bfa;
+  }
+  .page-link-btn.disabled { opacity: .35; pointer-events: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">👥 User Management</h5>
-  <div class="d-flex gap-2">
-    <a href="/users/export" class="btn btn-sm btn-outline-success">
-      <i class="bi bi-download me-1"></i> Export CSV
-    </a>
-  </div>
+  <h5 class="fw-bold mb-0">👥 User Management
+    <span class="text-muted fw-normal" style="font-size:.85rem">({{ total_count }} total)</span>
+  </h5>
+  <a href="/users/export" class="btn btn-sm btn-outline-success">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
 </div>
 
-<!-- Filters & Search -->
+<!-- ── Filters & Search ─────────────────────────────────────── -->
 <div class="glass p-3 mb-3">
-  <form method="GET" action="/users" class="row g-2 align-items-end">
-    <div class="col-md-5">
-      <div class="input-group input-group-sm">
-        <span class="input-group-text bg-transparent border-end-0" style="background:#1e1e38!important;border-color:#2a2a4a">
-          <i class="bi bi-search text-muted"></i>
-        </span>
-        <input type="text" name="q" class="form-control border-start-0" placeholder="Search username, game ID…" value="{{ q }}">
+  <form method="GET" action="/users" id="filter-form">
+    <div class="row g-2 align-items-end">
+      <!-- Search -->
+      <div class="col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-transparent" style="background:#1e1e38!important;border-color:#2a2a4a">
+            <i class="bi bi-search text-muted"></i>
+          </span>
+          <input type="text" name="q" class="form-control border-start-0"
+                 placeholder="Search username, game ID…" value="{{ q }}">
+        </div>
+      </div>
+
+      <!-- Status filter -->
+      <div class="col-6 col-md-2">
+        <select name="filter" class="form-select form-select-sm">
+          <option value="all"          {% if filt=='all'          %}selected{% endif %}>All Users</option>
+          <option value="active"       {% if filt=='active'       %}selected{% endif %}>Active (7d)</option>
+          <option value="inactive"     {% if filt=='inactive'     %}selected{% endif %}>Inactive (7d+)</option>
+          <option value="no_game_id"   {% if filt=='no_game_id'   %}selected{% endif %}>No Game ID</option>
+          <option value="has_referrals"{% if filt=='has_referrals'%}selected{% endif %}>Has Referrals</option>
+          <option value="banned"       {% if filt=='banned'       %}selected{% endif %}>Banned</option>
+          <option value="blocked"      {% if filt=='blocked'      %}selected{% endif %}>Blocked</option>
+        </select>
+      </div>
+
+      <!-- Language filter -->
+      <div class="col-6 col-md-2">
+        <select name="lang" class="form-select form-select-sm">
+          <option value="">All Languages</option>
+          {% for lang in langs %}
+          <option value="{{ lang }}" {% if lang_filter == lang %}selected{% endif %}>
+            {{ lang | upper }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Sort -->
+      <div class="col-6 col-md-2">
+        <select name="sort" class="form-select form-select-sm">
+          <option value="total_checkin" {% if sort=='total_checkin' %}selected{% endif %}>Sort: Check-ins</option>
+          <option value="streak"        {% if sort=='streak'        %}selected{% endif %}>Sort: Streak</option>
+          <option value="points"        {% if sort=='points'        %}selected{% endif %}>Sort: Points</option>
+          <option value="last_checkin"  {% if sort=='last_checkin'  %}selected{% endif %}>Sort: Last Active</option>
+          <option value="register_date" {% if sort=='register_date' %}selected{% endif %}>Sort: Registered</option>
+        </select>
+      </div>
+
+      <!-- Order + Submit -->
+      <div class="col-6 col-md-2 d-flex gap-1">
+        <select name="order" class="form-select form-select-sm" style="width:auto;flex-shrink:0">
+          <option value="desc" {% if order=='desc' %}selected{% endif %}>↓ Desc</option>
+          <option value="asc"  {% if order=='asc'  %}selected{% endif %}>↑ Asc</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm flex-fill">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
       </div>
     </div>
-    <div class="col-md-4">
-      <select name="filter" class="form-select form-select-sm">
-        <option value="all"        {% if filt=='all'        %}selected{% endif %}>All users</option>
-        <option value="active"     {% if filt=='active'     %}selected{% endif %}>Active (7 days)</option>
-        <option value="inactive"   {% if filt=='inactive'   %}selected{% endif %}>Inactive (7+ days)</option>
-        <option value="no_game_id" {% if filt=='no_game_id' %}selected{% endif %}>No Game ID</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <button type="submit" class="btn btn-primary btn-sm w-100">
-        <i class="bi bi-funnel me-1"></i>Filter
-      </button>
-    </div>
+
+    <!-- Keep sort/order on pagination (hidden) -->
+    <input type="hidden" name="page" value="1" id="page-input">
   </form>
 </div>
 
-<!-- Bulk Action Bar (shown when rows are selected) -->
+<!-- ── Bulk Action Bar ─────────────────────────────────────── -->
 <div id="bulk-bar" class="glass p-2 mb-3 d-none" style="border-color:#6f42c1">
   <div class="d-flex align-items-center gap-2 flex-wrap">
     <span class="text-warning fw-semibold" style="font-size:.85rem">
@@ -65,21 +128,22 @@
     </div>
   </div>
 </div>
-
-<!-- Hidden form for bulk action POST -->
 <form id="bulk-form" method="POST" action="/users/bulk-action"></form>
 
-<!-- Users Table -->
+<!-- ── Users Table ─────────────────────────────────────────── -->
 <div class="glass">
   <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center">
     <span class="text-muted" style="font-size:.8rem">
-      <strong class="text-light">{{ users | length }}</strong> users found
+      Showing <strong class="text-light">{{ users | length }}</strong> of
+      <strong class="text-light">{{ total_count }}</strong> users
+      (page {{ page }}/{{ total_pages }})
     </span>
-    <label class="d-flex align-items-center gap-2 text-muted mb-0" style="font-size:.8rem; cursor:pointer">
+    <label class="d-flex align-items-center gap-2 text-muted mb-0" style="font-size:.8rem;cursor:pointer">
       <input type="checkbox" id="select-all-top" class="form-check-input mt-0">
       <span>Select all</span>
     </label>
   </div>
+
   <div style="overflow-x:auto">
     <table class="table mb-0">
       <thead>
@@ -89,17 +153,58 @@
           </th>
           <th>User</th>
           <th>Game ID</th>
-          <th>Streak</th>
-          <th>Total Check-ins</th>
-          <th>Points</th>
-          <th>Referrals</th>
-          <th>Last Check-in</th>
-          <th>Status</th>
+          <th>
+            <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='streak',
+                        order=('asc' if sort=='streak' and order=='desc' else 'desc')) }}"
+               class="sort-link">
+              Streak
+              {% if sort=='streak' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
+            </a>
+          </th>
+          <th>
+            <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='total_checkin',
+                        order=('asc' if sort=='total_checkin' and order=='desc' else 'desc')) }}"
+               class="sort-link">
+              Check-ins
+              {% if sort=='total_checkin' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
+            </a>
+          </th>
+          <th>
+            <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='points',
+                        order=('asc' if sort=='points' and order=='desc' else 'desc')) }}"
+               class="sort-link">
+              Points
+              {% if sort=='points' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
+            </a>
+          </th>
+          <th>Refs</th>
+          <th>
+            <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort='last_checkin',
+                        order=('asc' if sort=='last_checkin' and order=='desc' else 'desc')) }}"
+               class="sort-link">
+              Last Active
+              {% if sort=='last_checkin' %}<i class="bi bi-caret-{{ 'down' if order=='desc' else 'up' }}-fill sort-icon"></i>{% endif %}
+            </a>
+          </th>
+          <th>Segment</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for u in users %}
+        {% set days_inactive = ((today - u.last_checkin).days if u.last_checkin else 9999) %}
+        {% set days_registered = ((today - u.register_date.date()).days if u.register_date else 9999) %}
+        {% if days_registered <= 7 %}
+          {% set seg_cls = 'seg-new' %}{% set seg_lbl = '🆕 New' %}
+        {% elif days_inactive > 30 %}
+          {% set seg_cls = 'seg-churned' %}{% set seg_lbl = '💀 Churned' %}
+        {% elif days_inactive > 5 %}
+          {% set seg_cls = 'seg-at_risk' %}{% set seg_lbl = '⚠️ At Risk' %}
+        {% elif u.streak > 30 or u.total_checkin > 100 %}
+          {% set seg_cls = 'seg-power' %}{% set seg_lbl = '⭐ Power' %}
+        {% else %}
+          {% set seg_cls = 'seg-regular' %}{% set seg_lbl = '✅ Regular' %}
+        {% endif %}
         <tr>
           <td style="padding-right:0">
             <input type="checkbox" class="row-check form-check-input" value="{{ u.telegram_id }}">
@@ -108,7 +213,11 @@
             <div class="d-flex align-items-center gap-2">
               <div class="avatar">{{ (u.first_name or u.username or 'U')[0].upper() }}</div>
               <div>
-                <div class="fw-semibold" style="font-size:.85rem">{{ u.display_name }}</div>
+                <div class="fw-semibold" style="font-size:.85rem">
+                  {{ u.display_name }}
+                  {% if u.is_banned %}<i class="bi bi-slash-circle text-danger ms-1" title="Banned" style="font-size:.75rem"></i>{% endif %}
+                  {% if u.is_blocked %}<i class="bi bi-volume-mute text-secondary ms-1" title="Blocked bot" style="font-size:.75rem"></i>{% endif %}
+                </div>
                 <div class="text-muted font-monospace" style="font-size:.7rem">{{ u.telegram_id }}</div>
               </div>
             </div>
@@ -120,21 +229,30 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td><span class="badge badge-streak">🔥 {{ u.streak }}</span></td>
+          <td><span class="badge badge-streak">🔥{{ u.streak }}</span></td>
           <td><strong>{{ u.total_checkin }}</strong></td>
           <td>{{ "{:,}".format(u.points) }}</td>
           <td>{{ u.referral_count }}</td>
-          <td class="text-muted" style="font-size:.8rem">{{ u.last_checkin or '—' }}</td>
-          <td>
-            {% if u.last_checkin and u.last_checkin >= now_7d %}
-              <span class="badge badge-active">Active</span>
+          <td class="text-muted" style="font-size:.8rem">
+            {% if u.last_checkin %}
+              {{ u.last_checkin }}
+              {% if days_inactive > 0 %}
+              <div style="font-size:.7rem;color:
+                {{ '#f87171' if days_inactive > 7 else ('#fb923c' if days_inactive > 3 else '#4ade80') }}">
+                {{ days_inactive }}d ago
+              </div>
+              {% endif %}
             {% else %}
-              <span class="badge badge-inactive">Inactive</span>
+              <span>—</span>
             {% endif %}
           </td>
           <td>
-            <a href="/users/{{ u.telegram_id }}" class="btn btn-sm btn-outline-secondary py-0 px-2">
-              <i class="bi bi-pencil"></i>
+            <span class="badge {{ seg_cls }}" style="font-size:.72rem">{{ seg_lbl }}</span>
+          </td>
+          <td>
+            <a href="/users/{{ u.telegram_id }}" class="btn btn-sm btn-outline-secondary py-0 px-2"
+               title="View details">
+              <i class="bi bi-bar-chart-line"></i>
             </a>
           </td>
         </tr>
@@ -144,12 +262,49 @@
       </tbody>
     </table>
   </div>
+
+  <!-- ── Pagination ─────────────────────────────────────────── -->
+  {% if total_pages > 1 %}
+  <div class="p-3 border-top border-dark d-flex justify-content-center align-items-center gap-1 flex-wrap">
+    <!-- Prev -->
+    <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort=sort, order=order, page=page-1) if page > 1 else '#' }}"
+       class="page-link-btn {{ 'disabled' if page <= 1 }}">
+      <i class="bi bi-chevron-left"></i>
+    </a>
+
+    {% set start_p = [1, page - 2] | max %}
+    {% set end_p   = [total_pages, page + 2] | min %}
+
+    {% if start_p > 1 %}
+      <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort=sort, order=order, page=1) }}"
+         class="page-link-btn">1</a>
+      {% if start_p > 2 %}<span class="text-muted" style="font-size:.8rem">…</span>{% endif %}
+    {% endif %}
+
+    {% for p in range(start_p, end_p + 1) %}
+      <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort=sort, order=order, page=p) }}"
+         class="page-link-btn {{ 'active' if p == page }}">{{ p }}</a>
+    {% endfor %}
+
+    {% if end_p < total_pages %}
+      {% if end_p < total_pages - 1 %}<span class="text-muted" style="font-size:.8rem">…</span>{% endif %}
+      <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort=sort, order=order, page=total_pages) }}"
+         class="page-link-btn">{{ total_pages }}</a>
+    {% endif %}
+
+    <!-- Next -->
+    <a href="{{ url_for('users', q=q, filter=filt, lang=lang_filter, sort=sort, order=order, page=page+1) if page < total_pages else '#' }}"
+       class="page-link-btn {{ 'disabled' if page >= total_pages }}">
+      <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// ── Bulk selection helpers ────────────────────────────────────
+// ── Bulk selection ────────────────────────────────────────────
 const allChecks   = () => [...document.querySelectorAll('.row-check')];
 const checkedList = () => allChecks().filter(c => c.checked);
 
@@ -167,7 +322,6 @@ function syncSelectAll(checked) {
   allChecks().forEach(c => c.checked = checked);
   updateBulkBar();
 }
-
 function clearSelection() {
   allChecks().forEach(c => c.checked = false);
   updateBulkBar();
@@ -186,29 +340,25 @@ function bulkAction(action) {
   if (!ids.length) return;
 
   let msg;
-  if (action === 'reset_streak')  msg = `Reset streak for ${ids.length} user(s)?`;
+  if (action === 'reset_streak')       msg = `Reset streak for ${ids.length} user(s)?`;
   else if (action === 'clear_game_id') msg = `Clear Game ID for ${ids.length} user(s)?`;
   else if (action === 'add_points') {
     const delta = parseInt(document.getElementById('bulk-points-delta').value || '0');
-    const sign  = delta >= 0 ? '+' : '';
-    msg = `Apply ${sign}${delta} points to ${ids.length} user(s)?`;
+    msg = `Apply ${delta >= 0 ? '+' : ''}${delta} points to ${ids.length} user(s)?`;
   }
   if (!confirm(msg)) return;
 
   const form = document.getElementById('bulk-form');
   form.innerHTML = '';
-
-  const addHidden = (name, val) => {
-    const inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = name; inp.value = val;
-    form.appendChild(inp);
+  const add = (name, val) => {
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = name; i.value = val;
+    form.appendChild(i);
   };
-
-  addHidden('action', action);
-  if (action === 'add_points') {
-    addHidden('delta', document.getElementById('bulk-points-delta').value || '0');
-  }
-  ids.forEach(id => addHidden('user_ids', id));
+  add('action', action);
+  if (action === 'add_points')
+    add('delta', document.getElementById('bulk-points-delta').value || '0');
+  ids.forEach(id => add('user_ids', id));
   form.submit();
 }
 </script>

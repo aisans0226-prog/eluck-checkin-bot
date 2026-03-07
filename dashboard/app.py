@@ -550,16 +550,69 @@ def users():
                 User.game_id.ilike(f"%{q}%") |
                 User.first_name.ilike(f"%{q}%")
             )
-        filt     = request.args.get("filter", "all")
+        filt        = request.args.get("filter", "all")
+        sort        = request.args.get("sort", "total_checkin")
+        order_dir   = request.args.get("order", "desc")
+        lang_filter = request.args.get("lang", "")
+        try:
+            page = max(1, int(request.args.get("page", 1) or 1))
+        except (ValueError, TypeError):
+            page = 1
+        per_page = 50
         today    = date.today()
         week_ago = today - timedelta(days=7)
+
         if filt == "active":
             query = query.filter(User.last_checkin >= week_ago)
         elif filt == "inactive":
-            query = query.filter((User.last_checkin < week_ago) | User.last_checkin.is_(None))
+            query = query.filter(
+                (User.last_checkin < week_ago) | User.last_checkin.is_(None)
+            )
         elif filt == "no_game_id":
             query = query.filter(User.game_id.is_(None))
-        return render_template("users.html", users=query.order_by(User.total_checkin.desc()).all(), q=q, filt=filt)
+        elif filt == "banned":
+            query = query.filter(User.is_banned == True)
+        elif filt == "blocked":
+            query = query.filter(User.is_blocked == True)
+        elif filt == "has_referrals":
+            sub = db.query(Referral.referrer_id).distinct().subquery()
+            query = query.filter(User.telegram_id.in_(sub))
+
+        if lang_filter:
+            query = query.filter(User.language == lang_filter)
+
+        _sort_map = {
+            "total_checkin": User.total_checkin,
+            "streak":        User.streak,
+            "points":        User.points,
+            "register_date": User.register_date,
+            "last_checkin":  User.last_checkin,
+        }
+        sort_col = _sort_map.get(sort, User.total_checkin)
+        if order_dir == "asc":
+            query = query.order_by(sort_col.asc().nullslast())
+        else:
+            query = query.order_by(sort_col.desc().nullslast())
+
+        total_count = query.count()
+        total_pages = max(1, (total_count + per_page - 1) // per_page)
+        page        = min(page, total_pages)
+        users_list  = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        lang_rows = db.query(User.language).distinct().all()
+        langs = sorted({r[0] for r in lang_rows if r[0]})
+
+        return render_template(
+            "users.html",
+            users=users_list,
+            q=q, filt=filt,
+            sort=sort, order=order_dir,
+            lang_filter=lang_filter,
+            page=page, total_pages=total_pages, total_count=total_count,
+            now_7d=week_ago,
+            today=today,
+            langs=langs,
+        )
     finally:
         db.close()
 
@@ -622,16 +675,123 @@ def user_detail(telegram_id: int):
 
             return redirect(url_for("user_detail", telegram_id=telegram_id))
 
-        history = (
+        # ── Full checkin history (heatmap + charts + KPIs) ────────
+        all_history = (
             db.query(CheckinLog).filter(CheckinLog.user_id == user.id)
-            .order_by(CheckinLog.checkin_date.desc()).limit(30).all()
+            .order_by(CheckinLog.checkin_date.asc()).all()
         )
+        history = list(reversed(all_history[-60:]))
+
+        checkin_dates_json = json.dumps([str(h.checkin_date) for h in all_history])
+
+        streak_chart = json.dumps([
+            {"x": str(h.checkin_date), "y": h.streak_at_checkin}
+            for h in all_history[-90:]
+        ])
+
+        cum = 0
+        cum_pts_list = []
+        for h in all_history:
+            cum += h.points_earned
+            cum_pts_list.append({"x": str(h.checkin_date), "y": cum})
+        points_chart = json.dumps(cum_pts_list[-90:])
+
+        # ── Referrals ──────────────────────────────────────────
         referrals = (
             db.query(Referral, User)
             .join(User, User.telegram_id == Referral.referred_id)
             .filter(Referral.referrer_id == telegram_id).all()
         )
-        return render_template("user_detail.html", user=user, history=history, referrals=referrals)
+        referred_by = None
+        if user.referrer_id:
+            referred_by = db.query(User).filter(
+                User.telegram_id == user.referrer_id
+            ).first()
+
+        # ── Tasks ──────────────────────────────────────────────
+        user_tasks_q = (
+            db.query(UserTask, TaskDefinition)
+            .outerjoin(TaskDefinition, TaskDefinition.task_key == UserTask.task_id)
+            .filter(UserTask.user_id == user.id)
+            .all()
+        )
+
+        # ── Events ────────────────────────────────────────────
+        recent_events = (
+            db.query(UserEvent)
+            .filter(UserEvent.telegram_id == telegram_id)
+            .order_by(UserEvent.created_at.desc())
+            .limit(30).all()
+        )
+        behavior = summarize_behavior([
+            {"event_type": e.event_type, "created_at": e.created_at, "meta": e.meta}
+            for e in recent_events
+        ])
+
+        # ── KPIs ───────────────────────────────────────────────
+        today_date          = date.today()
+        days_since_register = max(1, (today_date - user.register_date.date()).days)
+        consistency_pct     = round(user.total_checkin / days_since_register * 100, 1)
+        avg_pts_per_day     = round(user.points / days_since_register, 1)
+        days_inactive       = (
+            (today_date - user.last_checkin).days
+            if user.last_checkin else days_since_register
+        )
+
+        longest_streak = 0
+        if all_history:
+            cur_run = longest_streak = 1
+            for i in range(1, len(all_history)):
+                gap = (all_history[i].checkin_date - all_history[i - 1].checkin_date).days
+                cur_run = cur_run + 1 if gap == 1 else 1
+                if cur_run > longest_streak:
+                    longest_streak = cur_run
+
+        completed_tasks = sum(1 for t, _ in user_tasks_q if t.completed)
+        total_tasks     = len(user_tasks_q)
+        task_ratio      = completed_tasks / max(1, total_tasks)
+
+        churn = predict_churn_risk({
+            "streak":          user.streak,
+            "total_checkin":   user.total_checkin,
+            "days_since_last": days_inactive,
+            "task_completion": task_ratio,
+            "has_referrals":   len(referrals) > 0,
+        })
+
+        if days_since_register <= 7:
+            segment = ("new",     "🆕 New",        "primary")
+        elif days_inactive > 30:
+            segment = ("churned", "💀 Churned",    "danger")
+        elif days_inactive > 5:
+            segment = ("at_risk", "⚠️ At Risk",    "warning")
+        elif user.streak > 30 or user.total_checkin > 100:
+            segment = ("power",   "⭐ Power User", "success")
+        else:
+            segment = ("regular", "✅ Regular",    "secondary")
+
+        return render_template(
+            "user_detail.html",
+            user=user,
+            history=history,
+            referrals=referrals,
+            referred_by=referred_by,
+            user_tasks=user_tasks_q,
+            recent_events=recent_events,
+            behavior=behavior,
+            checkin_dates_json=checkin_dates_json,
+            streak_chart=streak_chart,
+            points_chart=points_chart,
+            days_since_register=days_since_register,
+            consistency_pct=consistency_pct,
+            avg_pts_per_day=avg_pts_per_day,
+            longest_streak=longest_streak,
+            days_inactive=days_inactive,
+            completed_tasks=completed_tasks,
+            total_tasks=total_tasks,
+            segment=segment,
+            churn=churn,
+        )
     finally:
         db.close()
 

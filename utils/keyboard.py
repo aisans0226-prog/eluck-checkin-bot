@@ -115,6 +115,10 @@ def profile_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
             InlineKeyboardButton(t("btn_my_tasks", lang), callback_data="menu:tasks"),
             InlineKeyboardButton(t("btn_leaderboard", lang), callback_data="menu:leaderboard"),
         ],
+        [
+            InlineKeyboardButton(t("btn_set_timezone", lang), callback_data="menu:timezone"),
+            InlineKeyboardButton(t("btn_language", lang), callback_data="menu:language"),
+        ],
         [InlineKeyboardButton(t("btn_home", lang), callback_data="menu:home")],
     ]
     return InlineKeyboardMarkup(buttons)
@@ -215,6 +219,26 @@ def language_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
             )
         ]
         for code, label in labels.items()
+    ]
+    rows.append([InlineKeyboardButton(t("btn_home", lang), callback_data="menu:home")])
+    return InlineKeyboardMarkup(rows)
+
+
+def timezone_keyboard(current_tz: str, lang: str = "en") -> InlineKeyboardMarkup:
+    """
+    Timezone selection keyboard.
+    Shows common IANA timezones as buttons.
+    The currently active timezone is marked with ✓.
+    """
+    from utils.helpers import TIMEZONE_OPTIONS
+    rows = [
+        [
+            InlineKeyboardButton(
+                f"{'✓ ' if current_tz == iana else ''}{label}",
+                callback_data=f"tz:set:{iana}",
+            )
+        ]
+        for label, iana in TIMEZONE_OPTIONS
     ]
     rows.append([InlineKeyboardButton(t("btn_home", lang), callback_data="menu:home")])
     return InlineKeyboardMarkup(rows)

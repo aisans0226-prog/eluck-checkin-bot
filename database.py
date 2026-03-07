@@ -131,6 +131,9 @@ def _run_migrations(engine) -> None:
         _add_column(conn, "users", "streak_freeze_used", "INTEGER NOT NULL DEFAULT 0")
         _add_column(conn, "users", "streak_freeze_month", "VARCHAR(7)")
 
+        # Add per-user timezone column (IANA zone string)
+        _add_column(conn, "users", "timezone", "VARCHAR(64) NOT NULL DEFAULT 'America/Mexico_City'")
+
 
 def _add_column(conn, table: str, column: str, definition: str) -> None:
     """Helper: add a column if it does not already exist (silently skip if it does)."""

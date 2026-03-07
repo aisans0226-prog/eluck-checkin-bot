@@ -39,6 +39,9 @@ class User(Base):
     # Preferred language
     language: Mapped[str] = mapped_column(String(8), default="en", nullable=False, server_default="en")
 
+    # Preferred timezone (IANA zone name, e.g. "Asia/Bangkok")
+    timezone: Mapped[str] = mapped_column(String(64), default="America/Mexico_City", nullable=False, server_default="America/Mexico_City")
+
     # Referral — FK to self (stores referrer's telegram_id)
     referrer_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id", ondelete="SET NULL"), nullable=True

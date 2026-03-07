@@ -24,6 +24,7 @@ from utils.keyboard import (
     task_detail_keyboard,
     back_to_menu_keyboard,
     language_keyboard,
+    timezone_keyboard,
 )
 from utils.helpers import safe_edit_or_reply, rate_limited, get_user_lang
 from utils.i18n import t
@@ -109,6 +110,19 @@ async def menu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TY
         elif data.startswith("lang:set:"):
             new_lang = data.split(":", 2)[2]
             await _set_language(update, context, new_lang, db)
+
+        elif data == "menu:timezone":
+            user = db.query(User).filter(User.telegram_id == tid).first()
+            current_tz = (getattr(user, "timezone", None) or "America/Mexico_City") if user else "America/Mexico_City"
+            await safe_edit_or_reply(
+                update,
+                t("timezone_menu_header", lang),
+                reply_markup=timezone_keyboard(current_tz, lang),
+            )
+
+        elif data.startswith("tz:set:"):
+            new_tz = data.split(":", 2)[2]
+            await _set_timezone(update, context, new_tz, db)
 
         else:
             logger.warning("Unhandled callback: %s", data)
@@ -303,3 +317,34 @@ async def _set_language(
     except Exception as exc:
         db.rollback()
         logger.error("_set_language error: %s", exc, exc_info=True)
+
+
+# ─────────────────────────────────────────────────────────────
+# Timezone selection
+# ─────────────────────────────────────────────────────────────
+async def _set_timezone(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, new_tz: str, db
+) -> None:
+    """Save the chosen timezone to the user row and return to profile."""
+    from utils.helpers import TIMEZONE_OPTIONS
+    valid_zones = {iana for _, iana in TIMEZONE_OPTIONS}
+    if new_tz not in valid_zones:
+        return
+
+    tg_user = update.effective_user
+    try:
+        user = db.query(User).filter(User.telegram_id == tg_user.id).first()
+        if not user:
+            await safe_edit_or_reply(update, t("start_first", "en"))
+            return
+
+        user.timezone = new_tz
+        db.commit()
+
+        # Reload profile so user immediately sees the updated timezone
+        from handlers.profile import _profile_impl
+        await _profile_impl(update, context)
+
+    except Exception as exc:
+        db.rollback()
+        logger.error("_set_timezone error: %s", exc, exc_info=True)
