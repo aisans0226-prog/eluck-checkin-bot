@@ -73,6 +73,7 @@ def init_db(database_url: str):
     from models.task_definition import TaskDefinition   # noqa: F401
     from models.dashboard_user import DashboardUser     # noqa: F401
     from models.audit_log import AuditLog               # noqa: F401
+    from models.scheduled_broadcast import ScheduledBroadcast  # noqa: F401
 
     engine = _get_engine(database_url)
     Base.metadata.create_all(bind=engine)

@@ -80,6 +80,10 @@ def main_menu_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
             InlineKeyboardButton(t("btn_tasks", lang), callback_data="menu:tasks"),
             InlineKeyboardButton(t("btn_referral", lang), callback_data="menu:referral"),
         ],
+        # Row 6 — language selector
+        [
+            InlineKeyboardButton(t("btn_language", lang), callback_data="menu:language"),
+        ],
     ]
     return InlineKeyboardMarkup(buttons)
 
@@ -172,3 +176,27 @@ def confirm_keyboard(action: str, lang: str = "en") -> InlineKeyboardMarkup:
             InlineKeyboardButton(t("btn_no", lang), callback_data=f"confirm:no:{action}"),
         ]
     ])
+
+
+def language_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
+    """
+    Language selection keyboard.
+    Shows the three supported languages as buttons.
+    The currently active language is marked with ✓.
+    """
+    labels = {
+        "en": "🇺🇸 English",
+        "pt": "🇧🇷 Português (Brasil)",
+        "zh": "🇨🇳 中文",
+    }
+    rows = [
+        [
+            InlineKeyboardButton(
+                f"{'✓ ' if lang == code else ''}{label}",
+                callback_data=f"lang:set:{code}",
+            )
+        ]
+        for code, label in labels.items()
+    ]
+    rows.append([InlineKeyboardButton(t("btn_home", lang), callback_data="menu:home")])
+    return InlineKeyboardMarkup(rows)

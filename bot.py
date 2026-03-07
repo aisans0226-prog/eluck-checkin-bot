@@ -30,6 +30,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 from database import init_db
 from utils.helpers import today_mexico
+from utils.i18n import t
 from models.user import User
 
 # ── Handlers ─────────────────────────────────────────────────
@@ -110,10 +111,10 @@ async def job_streak_reminder(app: Application) -> None:
             try:
                 await app.bot.send_message(
                     chat_id=user.telegram_id,
-                    text=(
-                        f"⏰ <b>Don't break your streak!</b>\n\n"
-                        f"🔥 You have a <b>{user.streak}-day streak</b>!\n"
-                        f"Check in today to keep it alive!"
+                    text=t(
+                        "streak_reminder",
+                        user.language or "en",
+                        streak=user.streak,
                     ),
                     parse_mode="HTML",
                 )

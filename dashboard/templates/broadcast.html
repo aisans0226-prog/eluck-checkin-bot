@@ -7,427 +7,529 @@
   <h5 class="fw-bold mb-0">📢 Broadcast Message</h5>
 </div>
 
-<div class="row g-3">
-  <!-- Compose form -->
-  <div class="col-lg-7">
-    <div class="glass p-4">
-      <form method="POST" action="/broadcast" id="broadcastForm"
-        enctype="multipart/form-data"
-        onsubmit="return confirmBroadcast()">
+<!-- ── Tabs ──────────────────────────────────────────────── -->
+<ul class="nav nav-tabs mb-3" id="broadcastTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-compose-btn"
+      data-bs-toggle="tab" data-bs-target="#tab-compose"
+      type="button" role="tab">
+      ✉️ Compose
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-queue-btn"
+      data-bs-toggle="tab" data-bs-target="#tab-queue"
+      type="button" role="tab">
+      📅 Scheduled Queue
+      {% if pending_count > 0 %}
+        <span class="badge bg-warning text-dark ms-1">{{ pending_count }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
 
-        <!-- Target -->
-        <div class="mb-4">
-          <label class="form-label fw-semibold">Target Audience</label>
-          <div class="row g-2">
-            <div class="col-4">
-              <input type="radio" class="btn-check" name="target" id="t_all"
-                value="all" checked>
-              <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_all"
-                style="font-size:.8rem">
-                <div style="font-size:1.4rem">👥</div>
-                <div class="fw-bold">All Users</div>
-                <div class="text-muted" style="font-size:.7rem">{{ total_users }}</div>
-              </label>
-            </div>
-            <div class="col-4">
-              <input type="radio" class="btn-check" name="target" id="t_active" value="active">
-              <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_active"
-                style="font-size:.8rem">
-                <div style="font-size:1.4rem">🔥</div>
-                <div class="fw-bold">Active (7d)</div>
-                <div class="text-muted" style="font-size:.7rem">{{ active_7d }}</div>
-              </label>
-            </div>
-            <div class="col-4">
-              <input type="radio" class="btn-check" name="target" id="t_game" value="game_id">
-              <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_game"
-                style="font-size:.8rem">
-                <div style="font-size:1.4rem">🎮</div>
-                <div class="fw-bold">With Game ID</div>
-                <div class="text-muted" style="font-size:.7rem">Registered</div>
-              </label>
-            </div>
-          </div>
-        </div>
+<div class="tab-content" id="broadcastTabContent">
 
-        <!-- Message -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Message <span class="text-muted fw-normal">(HTML supported)</span></label>
+  <!-- ════════════════════════════════════════════════════════
+       TAB 1 — COMPOSE
+       ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade show active" id="tab-compose" role="tabpanel">
+    <div class="row g-3">
 
-          <!-- Emoji toolbar -->
-          <div class="mb-2 rounded" style="background:rgba(255,255,255,.03);border:1px solid #2a2a4a;padding:.5rem .6rem">
-            <div class="d-flex align-items-center gap-1 flex-wrap">
-              <span style="font-size:.65rem;color:#64748b;margin-right:.25rem;white-space:nowrap">Quick:</span>
-              <button type="button" class="emoji-btn" title="Party" onclick="insertEmoji('🎉')">🎉</button>
-              <button type="button" class="emoji-btn" title="Fire"  onclick="insertEmoji('🔥')">🔥</button>
-              <button type="button" class="emoji-btn" title="Star"  onclick="insertEmoji('⭐')">⭐</button>
-              <button type="button" class="emoji-btn" title="Gem"   onclick="insertEmoji('💎')">💎</button>
-              <button type="button" class="emoji-btn" title="Rocket" onclick="insertEmoji('🚀')">🚀</button>
-              <button type="button" class="emoji-btn" title="Trophy" onclick="insertEmoji('🏆')">🏆</button>
-              <button type="button" class="emoji-btn" title="Gift"  onclick="insertEmoji('🎁')">🎁</button>
-              <button type="button" class="emoji-btn" title="Like"  onclick="insertEmoji('👍')">👍</button>
-              <button type="button" class="emoji-btn" title="Heart" onclick="insertEmoji('❤️')">❤️</button>
-              <button type="button" class="emoji-btn" title="Sparkles" onclick="insertEmoji('✨')">✨</button>
-              <button type="button" class="emoji-btn" title="Money" onclick="insertEmoji('💰')">💰</button>
-              <button type="button" class="emoji-btn" title="Megaphone" onclick="insertEmoji('📢')">📢</button>
-              <button type="button" class="emoji-btn" title="Coin" onclick="insertEmoji('🪙')">🪙</button>
-              <button type="button" class="emoji-btn" title="Crown" onclick="insertEmoji('👑')">👑</button>
-              <button type="button" id="btnMoreEmoji"
-                style="font-size:.7rem;color:#94a3b8;border:1px solid #2a2a4a;background:transparent;border-radius:6px;padding:.1rem .45rem;cursor:pointer;margin-left:.25rem"
-                onclick="toggleEmojiPanel()">
-                <i class="bi bi-grid-3x3-gap me-1"></i>More
-              </button>
-            </div>
+      <!-- Left column: form -->
+      <div class="col-lg-7">
+        <div class="glass p-4">
+          <form method="POST" action="/broadcast" id="broadcastForm"
+            enctype="multipart/form-data"
+            onsubmit="return onFormSubmit()">
 
-            <!-- Expanded emoji panel -->
-            <div id="emojiPanel" style="display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px solid #2a2a4a">
-              <div id="emojiCategories">
-                <!-- Category tabs -->
-                <div class="d-flex gap-1 mb-2 flex-wrap">
-                  <button type="button" class="emoji-cat-btn active" onclick="showEmojiCat(this,'cat-face')">😊 Faces</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-hand')">👍 Gestures</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-heart')">❤️ Hearts</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-celebrate')">🎉 Celebrate</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-game')">🎮 Gaming</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-money')">💰 Reward</button>
-                  <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-symbol')">📢 Symbols</button>
+            <!-- Hidden fields populated by JS in schedule/batch-schedule mode -->
+            <input type="hidden" name="scheduled_at" id="scheduledAtHidden">
+            <input type="hidden" name="timezone" id="timezoneHidden">
+
+            <!-- ── Target Audience ─────────────────────────────── -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Target Audience</label>
+              <div class="row g-2">
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="target" id="t_all" value="all" checked>
+                  <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_all" style="font-size:.8rem">
+                    <div style="font-size:1.4rem">👥</div>
+                    <div class="fw-bold">All Users</div>
+                    <div class="text-muted" style="font-size:.7rem">{{ total_users }}</div>
+                  </label>
                 </div>
-                <!-- Faces -->
-                <div id="cat-face" class="emoji-cat-grid">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😀')">😀</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😂')">😂</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤣')">🤣</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😍')">😍</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥰')">🥰</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😊')">😊</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😎')">😎</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤩')">🤩</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥳')">🥳</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😆')">😆</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤔')">🤔</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😅')">😅</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😉')">😉</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🙂')">🙂</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😢')">😢</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('😭')">😭</button>
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="target" id="t_active" value="active">
+                  <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_active" style="font-size:.8rem">
+                    <div style="font-size:1.4rem">🔥</div>
+                    <div class="fw-bold">Active (7d)</div>
+                    <div class="text-muted" style="font-size:.7rem">{{ active_7d }}</div>
+                  </label>
                 </div>
-                <!-- Gestures -->
-                <div id="cat-hand" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👍')">👍</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👎')">👎</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👏')">👏</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🙌')">🙌</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤝')">🤝</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🫶')">🫶</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤞')">🤞</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('✌️')">✌️</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👋')">👋</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤙')">🤙</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💪')">💪</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👊')">👊</button>
-                </div>
-                <!-- Hearts -->
-                <div id="cat-heart" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🧡')">🧡</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💛')">💛</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💚')">💚</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💙')">💙</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💜')">💜</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🖤')">🖤</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🤍')">🤍</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💝')">💝</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💖')">💖</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💗')">💗</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💓')">💓</button>
-                </div>
-                <!-- Celebrate -->
-                <div id="cat-celebrate" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎊')">🎊</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎈')">🎈</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎀')">🎀</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥂')">🥂</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🍾')">🍾</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎂')">🎂</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🏅')">🏅</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥇')">🥇</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥈')">🥈</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🥉')">🥉</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('✨')">✨</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💫')">💫</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button>
-                </div>
-                <!-- Gaming -->
-                <div id="cat-game" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎮')">🎮</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🕹️')">🕹️</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👾')">👾</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🃏')">🃏</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎲')">🎲</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('♟️')">♟️</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎳')">🎳</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🚀')">🚀</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('⭐')">⭐</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💥')">💥</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('👑')">👑</button>
-                </div>
-                <!-- Money/Reward -->
-                <div id="cat-money" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💰')">💰</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💵')">💵</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💴')">💴</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💶')">💶</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💎')">💎</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🪙')">🪙</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💳')">💳</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💸')">💸</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🏦')">🏦</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎁')">🎁</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎫')">🎫</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔑')">🔑</button>
-                </div>
-                <!-- Symbols -->
-                <div id="cat-symbol" class="emoji-cat-grid" style="display:none">
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('📢')">📢</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('📣')">📣</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('💬')">💬</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('📩')">📩</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('📱')">📱</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔔')">🔔</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔕')">🔕</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🌈')">🌈</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('☀️')">☀️</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🌙')">🌙</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('📈')">📈</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔗')">🔗</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('✅')">✅</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('❌')">❌</button>
-                  <button type="button" class="emoji-btn" onclick="insertEmoji('⚠️')">⚠️</button>
+                <div class="col-4">
+                  <input type="radio" class="btn-check" name="target" id="t_game" value="game_id">
+                  <label class="btn btn-outline-secondary w-100 py-3 text-center" for="t_game" style="font-size:.8rem">
+                    <div style="font-size:1.4rem">🎮</div>
+                    <div class="fw-bold">With Game ID</div>
+                    <div class="text-muted" style="font-size:.7rem">{{ game_id_count }}</div>
+                  </label>
                 </div>
               </div>
             </div>
-          </div>
 
-          <textarea name="message" id="msgInput" class="form-control" rows="7"
-            placeholder="Type your message here…&#10;&#10;Supports HTML: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;code&gt;code&lt;/code&gt;&#10;&#10;Example:&#10;🎉 &lt;b&gt;Special Event!&lt;/b&gt;&#10;&#10;Check in today to earn &lt;b&gt;2x points&lt;/b&gt;! 🚀"
-            oninput="updatePreview(this.value)"></textarea>
-          <div class="d-flex justify-content-between mt-1">
-            <span style="font-size:.7rem;color:#64748b" id="parseHint">Telegram HTML parse mode</span>
-            <span id="charCount" style="font-size:.7rem;color:#64748b">0 / 4096</span>
-          </div>
-        </div>
+            <!-- ── Message (emoji toolbar + textarea) ─────────── -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Message <span class="text-muted fw-normal">(HTML supported)</span></label>
 
-        <!-- Image Attachment -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-image me-1"></i>Attach Image
-            <span class="text-muted fw-normal">(optional)</span>
-          </label>
-          <div id="imageUploadArea" class="image-upload-area"
-            onclick="document.getElementById('imageInput').click()"
-            ondragover="event.preventDefault(); this.classList.add('drag-over')"
-            ondragleave="this.classList.remove('drag-over')"
-            ondrop="handleImageDrop(event)">
-            <div id="imageUploadPlaceholder">
-              <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#64748b"></i>
-              <div style="font-size:.8rem;color:#94a3b8;margin-top:.3rem">Click or drag &amp; drop to attach image</div>
-              <div style="font-size:.7rem;color:#475569;margin-top:.15rem">JPG, PNG, GIF, WebP · max 10 MB</div>
+              <div class="mb-2 rounded" style="background:rgba(255,255,255,.03);border:1px solid #2a2a4a;padding:.5rem .6rem">
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <span style="font-size:.65rem;color:#64748b;margin-right:.25rem;white-space:nowrap">Quick:</span>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('⭐')">⭐</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('💎')">💎</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🚀')">🚀</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🎁')">🎁</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('👍')">👍</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('✨')">✨</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('💰')">💰</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('📢')">📢</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('🪙')">🪙</button>
+                  <button type="button" class="emoji-btn" onclick="insertEmoji('👑')">👑</button>
+                  <button type="button" id="btnMoreEmoji"
+                    style="font-size:.7rem;color:#94a3b8;border:1px solid #2a2a4a;background:transparent;border-radius:6px;padding:.1rem .45rem;cursor:pointer;margin-left:.25rem"
+                    onclick="toggleEmojiPanel()">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>More
+                  </button>
+                </div>
+
+                <div id="emojiPanel" style="display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px solid #2a2a4a">
+                  <div id="emojiCategories">
+                    <div class="d-flex gap-1 mb-2 flex-wrap">
+                      <button type="button" class="emoji-cat-btn active" onclick="showEmojiCat(this,'cat-face')">😊 Faces</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-hand')">👍 Gestures</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-heart')">❤️ Hearts</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-celebrate')">🎉 Celebrate</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-game')">🎮 Gaming</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-money')">💰 Reward</button>
+                      <button type="button" class="emoji-cat-btn" onclick="showEmojiCat(this,'cat-symbol')">📢 Symbols</button>
+                    </div>
+                    <div id="cat-face" class="emoji-cat-grid">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('😀')">😀</button><button type="button" class="emoji-btn" onclick="insertEmoji('😂')">😂</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🤣')">🤣</button><button type="button" class="emoji-btn" onclick="insertEmoji('😍')">😍</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🥰')">🥰</button><button type="button" class="emoji-btn" onclick="insertEmoji('😊')">😊</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('😎')">😎</button><button type="button" class="emoji-btn" onclick="insertEmoji('🤩')">🤩</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🥳')">🥳</button><button type="button" class="emoji-btn" onclick="insertEmoji('😆')">😆</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🤔')">🤔</button><button type="button" class="emoji-btn" onclick="insertEmoji('😅')">😅</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('😉')">😉</button><button type="button" class="emoji-btn" onclick="insertEmoji('🙂')">🙂</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('😢')">😢</button><button type="button" class="emoji-btn" onclick="insertEmoji('😭')">😭</button>
+                    </div>
+                    <div id="cat-hand" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('👍')">👍</button><button type="button" class="emoji-btn" onclick="insertEmoji('👎')">👎</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('👏')">👏</button><button type="button" class="emoji-btn" onclick="insertEmoji('🙌')">🙌</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🤝')">🤝</button><button type="button" class="emoji-btn" onclick="insertEmoji('🫶')">🫶</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🤞')">🤞</button><button type="button" class="emoji-btn" onclick="insertEmoji('✌️')">✌️</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('👋')">👋</button><button type="button" class="emoji-btn" onclick="insertEmoji('🤙')">🤙</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💪')">💪</button><button type="button" class="emoji-btn" onclick="insertEmoji('👊')">👊</button>
+                    </div>
+                    <div id="cat-heart" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button><button type="button" class="emoji-btn" onclick="insertEmoji('🧡')">🧡</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💛')">💛</button><button type="button" class="emoji-btn" onclick="insertEmoji('💚')">💚</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💙')">💙</button><button type="button" class="emoji-btn" onclick="insertEmoji('💜')">💜</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🖤')">🖤</button><button type="button" class="emoji-btn" onclick="insertEmoji('🤍')">🤍</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💝')">💝</button><button type="button" class="emoji-btn" onclick="insertEmoji('💖')">💖</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💗')">💗</button><button type="button" class="emoji-btn" onclick="insertEmoji('💓')">💓</button>
+                    </div>
+                    <div id="cat-celebrate" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button><button type="button" class="emoji-btn" onclick="insertEmoji('🎊')">🎊</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎈')">🎈</button><button type="button" class="emoji-btn" onclick="insertEmoji('🎀')">🎀</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🥂')">🥂</button><button type="button" class="emoji-btn" onclick="insertEmoji('🍾')">🍾</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎂')">🎂</button><button type="button" class="emoji-btn" onclick="insertEmoji('🏅')">🏅</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🥇')">🥇</button><button type="button" class="emoji-btn" onclick="insertEmoji('🥈')">🥈</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🥉')">🥉</button><button type="button" class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button><button type="button" class="emoji-btn" onclick="insertEmoji('✨')">✨</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💫')">💫</button><button type="button" class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button>
+                    </div>
+                    <div id="cat-game" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎮')">🎮</button><button type="button" class="emoji-btn" onclick="insertEmoji('🕹️')">🕹️</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('👾')">👾</button><button type="button" class="emoji-btn" onclick="insertEmoji('🃏')">🃏</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎲')">🎲</button><button type="button" class="emoji-btn" onclick="insertEmoji('♟️')">♟️</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button><button type="button" class="emoji-btn" onclick="insertEmoji('🎳')">🎳</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🚀')">🚀</button><button type="button" class="emoji-btn" onclick="insertEmoji('⭐')">⭐</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💥')">💥</button><button type="button" class="emoji-btn" onclick="insertEmoji('👑')">👑</button>
+                    </div>
+                    <div id="cat-money" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💰')">💰</button><button type="button" class="emoji-btn" onclick="insertEmoji('💵')">💵</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💎')">💎</button><button type="button" class="emoji-btn" onclick="insertEmoji('🪙')">🪙</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💸')">💸</button><button type="button" class="emoji-btn" onclick="insertEmoji('🏦')">🏦</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🎁')">🎁</button><button type="button" class="emoji-btn" onclick="insertEmoji('🎫')">🎫</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🔑')">🔑</button>
+                    </div>
+                    <div id="cat-symbol" class="emoji-cat-grid" style="display:none">
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('📢')">📢</button><button type="button" class="emoji-btn" onclick="insertEmoji('📣')">📣</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('💬')">💬</button><button type="button" class="emoji-btn" onclick="insertEmoji('📩')">📩</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🔔')">🔔</button><button type="button" class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🌈')">🌈</button><button type="button" class="emoji-btn" onclick="insertEmoji('☀️')">☀️</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🌙')">🌙</button><button type="button" class="emoji-btn" onclick="insertEmoji('📈')">📈</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('🔗')">🔗</button><button type="button" class="emoji-btn" onclick="insertEmoji('✅')">✅</button>
+                      <button type="button" class="emoji-btn" onclick="insertEmoji('❌')">❌</button><button type="button" class="emoji-btn" onclick="insertEmoji('⚠️')">⚠️</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <textarea name="message" id="msgInput" class="form-control" rows="7"
+                placeholder="Type your message here…&#10;&#10;Supports HTML: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;code&gt;code&lt;/code&gt;&#10;&#10;Example:&#10;🎉 &lt;b&gt;Special Event!&lt;/b&gt;&#10;&#10;Check in today to earn &lt;b&gt;2x points&lt;/b&gt;! 🚀"
+                oninput="updatePreview(this.value)"></textarea>
+              <div class="d-flex justify-content-between mt-1">
+                <span style="font-size:.7rem;color:#64748b">Telegram HTML parse mode</span>
+                <span id="charCount" style="font-size:.7rem;color:#64748b">0 / 4096</span>
+              </div>
             </div>
-            <div id="imagePreviewWrap" style="display:none;position:relative">
-              <img id="imagePreview" src="" alt="Preview"
-                style="max-width:100%;max-height:220px;border-radius:8px;object-fit:contain">
-              <button type="button" id="removeImageBtn"
-                onclick="removeImage(event)"
-                style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;
-                       border-radius:50%;border:none;background:#ef4444;color:#fff;
-                       font-size:.75rem;line-height:1;cursor:pointer;display:flex;
-                       align-items:center;justify-content:center">
-                ×
+
+            <!-- ── Image upload ─────────────────────────────────── -->
+            <div class="mb-3" id="imageSection">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-image me-1"></i>Attach Image
+                <span class="text-muted fw-normal">(optional · not available in Batch mode)</span>
+              </label>
+              <div id="imageUploadArea" class="image-upload-area"
+                onclick="document.getElementById('imageInput').click()"
+                ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"
+                ondrop="handleImageDrop(event)">
+                <div id="imageUploadPlaceholder">
+                  <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#64748b"></i>
+                  <div style="font-size:.8rem;color:#94a3b8;margin-top:.3rem">Click or drag &amp; drop to attach image</div>
+                  <div style="font-size:.7rem;color:#475569;margin-top:.15rem">JPG, PNG, GIF, WebP · max 10 MB</div>
+                </div>
+                <div id="imagePreviewWrap" style="display:none;position:relative">
+                  <img id="imagePreview" src="" alt="Preview"
+                    style="max-width:100%;max-height:220px;border-radius:8px;object-fit:contain">
+                  <button type="button" id="removeImageBtn" onclick="removeImage(event)"
+                    style="position:absolute;top:-8px;right:-8px;width:22px;height:22px;
+                           border-radius:50%;border:none;background:#ef4444;color:#fff;
+                           font-size:.75rem;line-height:1;cursor:pointer;display:flex;
+                           align-items:center;justify-content:center">×</button>
+                  <div id="imageFileName" style="font-size:.7rem;color:#94a3b8;margin-top:.35rem;text-align:center"></div>
+                </div>
+              </div>
+              <input type="file" name="image" id="imageInput" accept="image/*" style="display:none" onchange="handleImageSelect(event)">
+              <div class="text-muted mt-1" style="font-size:.7rem">
+                <i class="bi bi-info-circle me-1"></i>When image is attached, message becomes the caption
+                <span id="captionLimitHint" style="display:none;color:#fbbf24"> · max 1024 chars for caption</span>
+              </div>
+            </div>
+
+            <!-- ── Quick templates ─────────────────────────────── -->
+            <div class="mb-3">
+              <div style="font-size:.75rem;color:#64748b;margin-bottom:.5rem">Quick templates:</div>
+              <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                  onclick="insertTemplate('🎉 <b>Special Event!</b>\n\nCheck in today to get bonus rewards! 🚀')">🎉 Event</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                  onclick="insertTemplate('🔥 <b>Don\'t break your streak!</b>\n\nRemember to check in today to keep your streak alive 💎')">🔥 Reminder</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                  onclick="insertTemplate('🏆 <b>Leaderboard Update!</b>\n\nCheck your ranking and keep checking in daily to climb the top! 📈')">🏆 Leaderboard</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                  onclick="insertTemplate('🎁 <b>Referral Bonus!</b>\n\nShare your referral link and earn <b>extra points</b> for every friend that joins! 🔗')">🔗 Referral</button>
+              </div>
+            </div>
+
+            <!-- ── Send Options (mode selector) ───────────────── -->
+            <div class="mb-3 p-3 rounded" style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18)">
+              <div class="fw-semibold mb-2" style="font-size:.85rem;color:#c4b5fd">
+                <i class="bi bi-send me-1"></i>Send Options
+              </div>
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <input type="radio" class="btn-check" name="send_mode" id="modeNow" value="now" checked onchange="updateMode()">
+                <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeNow" style="font-size:.8rem">
+                  <i class="bi bi-send me-1"></i>⚡ Send Now
+                </label>
+                <input type="radio" class="btn-check" name="send_mode" id="modeSchedule" value="schedule" onchange="updateMode()">
+                <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeSchedule" style="font-size:.8rem">
+                  <i class="bi bi-clock me-1"></i>📅 Schedule for Later
+                </label>
+                <input type="radio" class="btn-check" name="send_mode" id="modeBatch" value="batch" onchange="updateMode()">
+                <label class="btn btn-outline-secondary btn-sm py-2 px-3" for="modeBatch" style="font-size:.8rem">
+                  <i class="bi bi-stack me-1"></i>📦 Batch Schedule
+                </label>
+              </div>
+
+              <!-- Schedule picker (shown for schedule + batch) -->
+              <div id="schedulePickerWrap" style="display:none">
+                <div class="row g-2 align-items-end">
+                  <div class="col-sm-6">
+                    <label class="form-label mb-1" style="font-size:.78rem;color:#94a3b8">
+                      <i class="bi bi-calendar3 me-1"></i>Date &amp; Time
+                    </label>
+                    <input type="datetime-local" id="scheduledAtInput" class="form-control form-control-sm"
+                      oninput="updateSchedulePreview()">
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label mb-1" style="font-size:.78rem;color:#94a3b8">
+                      <i class="bi bi-globe me-1"></i>Timezone
+                    </label>
+                    <select id="timezoneInput" class="form-select form-select-sm" onchange="updateSchedulePreview()">
+                      {% for tz_key, tz_label in timezones %}
+                      <option value="{{ tz_key }}" {% if tz_key == "UTC" %}selected{% endif %}>{{ tz_label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div id="schedTimePreview" class="mt-2" style="font-size:.75rem;color:#94a3b8;min-height:1.2rem"></div>
+              </div>
+
+              <!-- Batch info note -->
+              <div id="batchNote" style="display:none" class="text-muted" style="font-size:.8rem">
+                <i class="bi bi-info-circle me-1"></i>
+                Set the schedule time above, then click <strong>+ Add to Batch</strong>.
+                Images are not supported in batch mode. Submit when all items are ready.
+              </div>
+            </div>
+
+            <!-- ── Action buttons ──────────────────────────────── -->
+            <div class="d-flex gap-2 justify-content-end flex-wrap">
+              <button type="button" class="btn btn-outline-secondary" onclick="clearAll()">
+                <i class="bi bi-trash me-1"></i>Clear
               </button>
-              <div id="imageFileName" style="font-size:.7rem;color:#94a3b8;margin-top:.35rem;text-align:center"></div>
+              <!-- Send Now button (mode = now) -->
+              <button type="submit" id="btnSendNow" class="btn btn-primary px-4">
+                <i class="bi bi-send-fill me-2"></i>Send Broadcast
+              </button>
+              <!-- Schedule button (mode = schedule) -->
+              <button type="submit" id="btnScheduleSingle" class="btn btn-indigo px-4" style="display:none">
+                <i class="bi bi-clock me-2"></i>Schedule Broadcast
+              </button>
+              <!-- Add to Batch (mode = batch) -->
+              <button type="button" id="btnAddBatch" class="btn btn-teal px-4" style="display:none"
+                onclick="addToBatch()">
+                <i class="bi bi-plus-circle me-2"></i>Add to Batch
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ── Batch list panel ─────────────────────────────── -->
+        <div id="batchPanel" class="glass p-4 mt-3" style="display:none">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-semibold mb-0">
+              📦 Batch Queue &mdash; <span id="batchCount">0</span> item(s)
+            </h6>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearBatch()">
+                <i class="bi bi-trash"></i> Clear All
+              </button>
+              <button type="button" id="btnSubmitBatch" class="btn btn-sm btn-success" disabled
+                onclick="submitBatch()">
+                <i class="bi bi-send-fill me-1"></i>Submit All Batch
+              </button>
             </div>
           </div>
-          <input type="file" name="image" id="imageInput" accept="image/*"
-            style="display:none" onchange="handleImageSelect(event)">
-          <div class="text-muted mt-1" style="font-size:.7rem">
-            <i class="bi bi-info-circle me-1"></i>When image is attached, message becomes the caption
-            <span id="captionLimitHint" style="display:none;color:#fbbf24"> · max 1024 chars for caption</span>
+          <div id="batchList" class="d-flex flex-column gap-2"></div>
+          <div id="batchResult" class="mt-3" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Right column: preview -->
+      <div class="col-lg-5">
+        <div class="glass p-4 position-sticky" style="top:80px">
+          <h6 class="fw-semibold mb-3 text-purple">📱 Message Preview</h6>
+          <div style="background:#1e1e38;border-radius:12px 12px 12px 0;padding:1rem;
+                      border:1px solid #2a2a4a;min-height:80px;font-size:.875rem">
+            <div class="text-muted mb-1" style="font-size:.7rem">📢 Announcement</div>
+            <div id="previewImageWrap" style="display:none;margin-bottom:.5rem">
+              <img id="previewBubbleImg" src="" alt=""
+                style="max-width:100%;border-radius:8px;max-height:160px;object-fit:cover;width:100%">
+            </div>
+            <div id="msgPreview" class="text-break"></div>
+            <div class="text-muted mt-2" style="font-size:.65rem">Now · Eluck Check-in Bot</div>
+          </div>
+
+          <div id="previewImageInfo" class="mt-2 px-2 py-1 rounded d-flex align-items-center gap-2"
+            style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
+            <i class="bi bi-image text-purple" style="font-size:.8rem"></i>
+            <span id="previewImageName" style="font-size:.72rem;color:#94a3b8"></span>
+          </div>
+
+          <!-- Schedule preview -->
+          <div id="scheduleInfoBox" class="mt-3 p-2 rounded"
+            style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-clock text-purple" style="font-size:.8rem"></i>
+              <span class="fw-semibold" style="font-size:.75rem;color:#c4b5fd">Scheduled Send</span>
+            </div>
+            <div id="scheduleInfoText" style="font-size:.78rem;color:#94a3b8"></div>
+          </div>
+
+          <div class="mt-3 p-2 rounded" style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.15)">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-exclamation-triangle text-warning" style="font-size:.8rem"></i>
+              <span class="fw-semibold" style="font-size:.75rem;color:#fbbf24">Before sending</span>
+            </div>
+            <ul class="mb-0 text-muted ps-3" style="font-size:.72rem">
+              <li>Double-check HTML tags are correct</li>
+              <li>Large broadcasts may take a few minutes</li>
+              <li>Users who blocked the bot will show as failed</li>
+              <li id="captionWarning" style="display:none;color:#fbbf24">Caption is limited to 1024 chars with image</li>
+            </ul>
           </div>
         </div>
+      </div>
 
-        <!-- Quick templates -->
-        <div class="mb-3">
-          <div style="font-size:.75rem;color:#64748b;margin-bottom:.5rem">Quick templates:</div>
-          <div class="d-flex flex-wrap gap-1">
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0"
-              onclick="insertTemplate('🎉 <b>Special Event!</b>\n\nCheck in today to get bonus rewards! 🚀')">
-              🎉 Event
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0"
-              onclick="insertTemplate('🔥 <b>Don\'t break your streak!</b>\n\nRemember to check in today to keep your streak alive 💎')">
-              🔥 Reminder
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0"
-              onclick="insertTemplate('🏆 <b>Leaderboard Update!</b>\n\nCheck your ranking and keep checking in daily to climb the top! 📈')">
-              🏆 Leaderboard
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0"
-              onclick="insertTemplate('🎁 <b>Referral Bonus!</b>\n\nShare your referral link and earn <b>extra points</b> for every friend that joins! 🔗')">
-              🔗 Referral
-            </button>
-          </div>
-        </div>
+    </div><!-- /row -->
+  </div><!-- /tab-compose -->
 
-        <div class="d-flex gap-2 justify-content-end">
-          <button type="button" class="btn btn-outline-secondary"
-            onclick="clearAll()">
-            <i class="bi bi-trash me-1"></i>Clear
-          </button>
-          <button type="submit" class="btn btn-primary px-4">
-            <i class="bi bi-send-fill me-2"></i>Send Broadcast
-          </button>
-        </div>
-      </form>
+
+  <!-- ════════════════════════════════════════════════════════
+       TAB 2 — SCHEDULED QUEUE
+       ════════════════════════════════════════════════════════ -->
+  <div class="tab-pane fade" id="tab-queue" role="tabpanel">
+    <div class="glass p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0">📅 Scheduled Broadcasts</h6>
+        <span class="text-muted" style="font-size:.8rem">All times displayed in UTC. Scheduler checks every minute.</span>
+      </div>
+
+      {% if schedules %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
+          <thead style="font-size:.78rem;color:#94a3b8">
+            <tr>
+              <th>#</th>
+              <th>Scheduled (UTC)</th>
+              <th>Timezone</th>
+              <th>Target</th>
+              <th style="min-width:180px">Message</th>
+              <th>Status</th>
+              <th>Results</th>
+              <th>By</th>
+              <th style="min-width:90px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for bc in schedules %}
+            <tr>
+              <td class="text-muted">#{{ bc.id }}</td>
+              <td style="white-space:nowrap">
+                {{ bc.scheduled_at.strftime('%Y-%m-%d') }}<br>
+                <span style="font-size:.75rem;color:#94a3b8">{{ bc.scheduled_at.strftime('%H:%M') }} UTC</span>
+              </td>
+              <td style="font-size:.75rem;color:#94a3b8;white-space:nowrap">{{ bc.timezone_name }}</td>
+              <td><span class="badge bg-secondary">{{ bc.target_label }}</span></td>
+              <td>
+                <div style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  {{ bc.message_text[:100] }}{% if bc.message_text|length > 100 %}…{% endif %}
+                </div>
+                {% if bc.image_filename %}
+                  <small class="text-muted"><i class="bi bi-image me-1"></i>+image</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-{{ bc.status_badge }}">{{ bc.status }}</span>
+              </td>
+              <td style="white-space:nowrap">
+                {% if bc.sent_at %}
+                  <span class="text-success" title="Sent">✅ {{ bc.sent_count }}</span>
+                  <span class="text-danger ms-1" title="Failed">❌ {{ bc.failed_count }}</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td style="font-size:.75rem;color:#94a3b8">{{ bc.created_by or '—' }}</td>
+              <td>
+                {% if bc.status == 'pending' %}
+                  <form method="POST" action="/broadcast/schedule/cancel/{{ bc.id }}"
+                    style="display:inline"
+                    onsubmit="return confirm('Cancel this scheduled broadcast?')">
+                    <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2"
+                      style="font-size:.75rem">Cancel</button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="/broadcast/schedule/delete/{{ bc.id }}"
+                    style="display:inline"
+                    onsubmit="return confirm('Delete this record?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
+                      style="font-size:.75rem">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-calendar-x" style="font-size:2.5rem;opacity:.35"></i>
+        <div class="mt-2">No scheduled broadcasts yet.</div>
+        <div style="font-size:.8rem">Go to the <strong>Compose</strong> tab and choose "Schedule for Later" or "Batch Schedule".</div>
+      </div>
+      {% endif %}
     </div>
-  </div>
+  </div><!-- /tab-queue -->
 
-  <!-- Preview panel -->
-  <div class="col-lg-5">
-    <div class="glass p-4 position-sticky" style="top:80px">
-      <h6 class="fw-semibold mb-3 text-purple">📱 Message Preview</h6>
-      <!-- Telegram-style bubble -->
-      <div style="background:#1e1e38;border-radius:12px 12px 12px 0;padding:1rem;
-                  border:1px solid #2a2a4a;min-height:80px;font-size:.875rem">
-        <div class="text-muted mb-1" style="font-size:.7rem">📢 Announcement</div>
-        <!-- Image preview in bubble -->
-        <div id="previewImageWrap" style="display:none;margin-bottom:.5rem">
-          <img id="previewBubbleImg" src="" alt=""
-            style="max-width:100%;border-radius:8px;max-height:160px;object-fit:cover;width:100%">
-        </div>
-        <div id="msgPreview" class="text-break"></div>
-        <div class="text-muted mt-2" style="font-size:.65rem">Now · Vpoker Check in bot</div>
-      </div>
-
-      <!-- Image info badge -->
-      <div id="previewImageInfo"
-        class="mt-2 px-2 py-1 rounded d-flex align-items-center gap-2"
-        style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
-        <i class="bi bi-image text-purple" style="font-size:.8rem"></i>
-        <span id="previewImageName" style="font-size:.72rem;color:#94a3b8"></span>
-      </div>
-
-      <div class="mt-3 p-2 rounded" style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.15)">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi bi-exclamation-triangle text-warning" style="font-size:.8rem"></i>
-          <span class="fw-semibold" style="font-size:.75rem;color:#fbbf24">Before sending</span>
-        </div>
-        <ul class="mb-0 text-muted ps-3" style="font-size:.72rem">
-          <li>Double-check HTML tags are correct</li>
-          <li>Large broadcasts may take a few minutes</li>
-          <li>Users who blocked the bot will show as failed</li>
-          <li id="captionWarning" style="display:none;color:#fbbf24">Caption is limited to 1024 chars with image</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
+</div><!-- /tab-content -->
 {% endblock %}
+
 
 {% block scripts %}
 <style>
 .emoji-btn {
-  border: 1px solid #2a2a4a;
-  background: rgba(255,255,255,.04);
-  border-radius: 6px;
-  width: 2rem;
-  height: 2rem;
-  font-size: .95rem;
-  cursor: pointer;
-  transition: background .12s, transform .1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  line-height: 1;
+  border: 1px solid #2a2a4a; background: rgba(255,255,255,.04);
+  border-radius: 6px; width: 2rem; height: 2rem; font-size: .95rem;
+  cursor: pointer; transition: background .12s, transform .1s;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1;
 }
-.emoji-btn:hover {
-  background: rgba(255,255,255,.13);
-  transform: scale(1.15);
-}
-.emoji-cat-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .25rem;
-}
+.emoji-btn:hover { background: rgba(255,255,255,.13); transform: scale(1.15); }
+.emoji-cat-grid { display: flex; flex-wrap: wrap; gap: .25rem; }
 .emoji-cat-btn {
-  font-size: .68rem;
-  border: 1px solid #2a2a4a;
-  background: transparent;
-  color: #94a3b8;
-  border-radius: 6px;
-  padding: .15rem .45rem;
-  cursor: pointer;
+  font-size: .68rem; border: 1px solid #2a2a4a; background: transparent;
+  color: #94a3b8; border-radius: 6px; padding: .15rem .45rem; cursor: pointer;
   transition: background .12s, color .12s;
 }
-.emoji-cat-btn.active {
-  background: rgba(99,102,241,.25);
-  border-color: #6366f1;
-  color: #c4b5fd;
-}
-.emoji-cat-btn:hover:not(.active) {
-  background: rgba(255,255,255,.07);
-}
+.emoji-cat-btn.active { background: rgba(99,102,241,.25); border-color: #6366f1; color: #c4b5fd; }
+.emoji-cat-btn:hover:not(.active) { background: rgba(255,255,255,.07); }
 .image-upload-area {
-  border: 2px dashed #2a2a4a;
-  border-radius: 10px;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-  min-height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 2px dashed #2a2a4a; border-radius: 10px; padding: 1.5rem 1rem;
+  text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+  min-height: 90px; display: flex; align-items: center; justify-content: center;
 }
-.image-upload-area:hover,
-.image-upload-area.drag-over {
-  border-color: #6366f1;
-  background: rgba(99,102,241,.06);
+.image-upload-area:hover, .image-upload-area.drag-over {
+  border-color: #6366f1; background: rgba(99,102,241,.06);
 }
-.image-upload-area.has-image {
-  border-style: solid;
-  border-color: #4f46e5;
-  padding: .75rem;
+.image-upload-area.has-image { border-style: solid; border-color: #4f46e5; padding: .75rem; }
+.btn-indigo { background: #4f46e5; color: #fff; border: none; }
+.btn-indigo:hover { background: #4338ca; color: #fff; }
+.btn-teal { background: #0d9488; color: #fff; border: none; }
+.btn-teal:hover { background: #0f766e; color: #fff; }
+.batch-item {
+  background: rgba(255,255,255,.04); border: 1px solid #2a2a4a;
+  border-radius: 8px; padding: .6rem .8rem; font-size: .82rem;
 }
 </style>
 
 <script>
-/* ── Emoji helpers ─────────────────────────────────── */
+/* ── Emoji helpers ──────────────────────────────────────────── */
 function insertEmoji(emoji) {
   const ta = document.getElementById('msgInput');
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  const val = ta.value;
-  ta.value = val.slice(0, start) + emoji + val.slice(end);
-  ta.selectionStart = ta.selectionEnd = start + emoji.length;
-  ta.focus();
-  updatePreview(ta.value);
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + emoji + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + emoji.length;
+  ta.focus(); updatePreview(ta.value);
 }
-
 let emojiPanelOpen = false;
 function toggleEmojiPanel() {
   emojiPanelOpen = !emojiPanelOpen;
   document.getElementById('emojiPanel').style.display = emojiPanelOpen ? '' : 'none';
-  const btn = document.getElementById('btnMoreEmoji');
-  btn.innerHTML = emojiPanelOpen
+  document.getElementById('btnMoreEmoji').innerHTML = emojiPanelOpen
     ? '<i class="bi bi-chevron-up me-1"></i>Less'
     : '<i class="bi bi-grid-3x3-gap me-1"></i>More';
 }
-
 function showEmojiCat(btn, catId) {
   document.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.emoji-cat-grid').forEach(g => g.style.display = 'none');
@@ -435,54 +537,40 @@ function showEmojiCat(btn, catId) {
   document.getElementById(catId).style.display = 'flex';
 }
 
-/* ── Image upload helpers ──────────────────────────── */
-function handleImageSelect(event) {
-  const file = event.target.files[0];
-  if (file) applyImageFile(file);
-}
-
-function handleImageDrop(event) {
-  event.preventDefault();
+/* ── Image helpers ──────────────────────────────────────────── */
+function handleImageSelect(e) { const f = e.target.files[0]; if (f) applyImageFile(f); }
+function handleImageDrop(e) {
+  e.preventDefault();
   document.getElementById('imageUploadArea').classList.remove('drag-over');
-  const file = event.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) {
-    // Assign the dropped file to the input so it is submitted with the form
-    const dt = new DataTransfer();
-    dt.items.add(file);
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) {
+    const dt = new DataTransfer(); dt.items.add(f);
     document.getElementById('imageInput').files = dt.files;
-    applyImageFile(file);
+    applyImageFile(f);
   }
 }
-
 function applyImageFile(file) {
-  if (file.size > 10 * 1024 * 1024) {
-    alert('Image size must be under 10 MB.');
-    return;
-  }
+  if (file.size > 10 * 1024 * 1024) { alert('Image size must be under 10 MB.'); return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     const src = e.target.result;
-    // Show thumbnail in upload area
     document.getElementById('imageUploadPlaceholder').style.display = 'none';
     document.getElementById('imagePreview').src = src;
     document.getElementById('imageFileName').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
     document.getElementById('imagePreviewWrap').style.display = '';
     document.getElementById('imageUploadArea').classList.add('has-image');
-    // Show in preview bubble
     document.getElementById('previewBubbleImg').src = src;
     document.getElementById('previewImageWrap').style.display = '';
     document.getElementById('previewImageName').textContent = file.name;
     document.getElementById('previewImageInfo').style.display = '';
-    // Update char counter hint
     document.getElementById('captionLimitHint').style.display = '';
     document.getElementById('captionWarning').style.display = '';
     updateCharCount(document.getElementById('msgInput').value, true);
   };
   reader.readAsDataURL(file);
 }
-
-function removeImage(event) {
-  event.stopPropagation();
+function removeImage(e) {
+  e.stopPropagation();
   document.getElementById('imageInput').value = '';
   document.getElementById('imagePreviewWrap').style.display = 'none';
   document.getElementById('imageUploadPlaceholder').style.display = '';
@@ -493,37 +581,30 @@ function removeImage(event) {
   document.getElementById('captionWarning').style.display = 'none';
   updateCharCount(document.getElementById('msgInput').value, false);
 }
-
-/* ── Preview & char count ──────────────────────────── */
 function hasImage() {
-  const inp = document.getElementById('imageInput');
-  return inp.files && inp.files.length > 0;
+  const i = document.getElementById('imageInput');
+  return i.files && i.files.length > 0;
 }
 
+/* ── Preview & char count ──────────────────────────────────── */
 function updateCharCount(text, withImage) {
   const limit = withImage ? 1024 : 4096;
   const el = document.getElementById('charCount');
   el.textContent = `${text.length} / ${limit}`;
   el.style.color = text.length > limit ? '#ef4444' : '#64748b';
 }
-
 function updatePreview(text) {
   updateCharCount(text, hasImage());
-  document.getElementById('msgPreview').innerHTML = text
-    .replace(/\n/g, '<br>')
+  document.getElementById('msgPreview').innerHTML = text.replace(/\n/g, '<br>')
     || '<span class="text-muted">Your message will appear here…</span>';
 }
-
 function insertTemplate(text) {
   const ta = document.getElementById('msgInput');
-  ta.value = text;
-  updatePreview(text);
+  ta.value = text; updatePreview(text);
 }
-
 function clearAll() {
   document.getElementById('msgInput').value = '';
   updatePreview('');
-  // Reset image upload area directly
   document.getElementById('imageInput').value = '';
   document.getElementById('imagePreviewWrap').style.display = 'none';
   document.getElementById('imageUploadPlaceholder').style.display = '';
@@ -535,22 +616,181 @@ function clearAll() {
   updateCharCount('', false);
 }
 
-/* ── Confirm before send ───────────────────────────── */
-function confirmBroadcast() {
-  const msg = document.getElementById('msgInput').value.trim();
-  const img = hasImage();
-  if (!msg && !img) { alert('Please enter a message or attach an image.'); return false; }
-  if (img && msg.length > 1024) {
-    alert('Caption cannot exceed 1024 characters when an image is attached.');
-    return false;
-  }
-  const tgt = document.querySelector('input[name="target"]:checked');
-  const lbl = tgt ? tgt.nextElementSibling.querySelector('.fw-bold').textContent : 'All users';
-  const imgNote = img ? ' [+ image]' : '';
-  return confirm(`Send broadcast to: ${lbl}?${imgNote}\n\nMessage preview:\n${msg.slice(0, 100)}${msg.length > 100 ? '…' : ''}`);
+/* ── Mode switcher ─────────────────────────────────────────── */
+function updateMode() {
+  const mode = document.querySelector('input[name="send_mode"]:checked').value;
+  const isSchedule = mode === 'schedule';
+  const isBatch    = mode === 'batch';
+  const needsPicker = isSchedule || isBatch;
+
+  document.getElementById('schedulePickerWrap').style.display = needsPicker ? '' : 'none';
+  document.getElementById('batchNote').style.display          = isBatch     ? '' : 'none';
+  document.getElementById('btnSendNow').style.display         = mode === 'now' ? '' : 'none';
+  document.getElementById('btnScheduleSingle').style.display  = isSchedule  ? '' : 'none';
+  document.getElementById('btnAddBatch').style.display        = isBatch     ? '' : 'none';
+  document.getElementById('batchPanel').style.display         = isBatch     ? '' : 'none';
+  document.getElementById('scheduleInfoBox').style.display    = needsPicker ? '' : 'none';
+  // Disable image upload in batch mode (no image support for batch)
+  document.getElementById('imageSection').style.opacity = isBatch ? '.4' : '1';
+  document.getElementById('imageSection').style.pointerEvents = isBatch ? 'none' : '';
+  updateSchedulePreview();
 }
 
-/* ── Init ──────────────────────────────────────────── */
-updatePreview('');
+/* ── Schedule time preview ─────────────────────────────────── */
+function updateSchedulePreview() {
+  const dt  = document.getElementById('scheduledAtInput').value;
+  const tz  = document.getElementById('timezoneInput').value;
+  const previewEl = document.getElementById('schedTimePreview');
+  const infoEl    = document.getElementById('scheduleInfoText');
+  if (!dt) {
+    const msg = 'Pick a date and time above.';
+    previewEl.textContent = msg; infoEl.textContent = msg; return;
+  }
+  const localStr = dt.replace('T', ' ');
+  const msg = `⏰ Send at ${localStr} (${tz})`;
+  previewEl.textContent = msg; infoEl.textContent = msg;
+}
+
+/* ── Batch queue ───────────────────────────────────────────── */
+let batchItems = [];
+
+function addToBatch() {
+  const msg    = document.getElementById('msgInput').value.trim();
+  const target = document.querySelector('input[name="target"]:checked').value;
+  const dt     = document.getElementById('scheduledAtInput').value;
+  const tz     = document.getElementById('timezoneInput').value;
+
+  if (!msg)  { alert('Please enter a message.'); return; }
+  if (!dt)   { alert('Please select a schedule date & time.'); return; }
+
+  batchItems.push({ message: msg, target, scheduled_at: dt, timezone: tz });
+  renderBatchList();
+
+  // Clear the message for the next entry
+  document.getElementById('msgInput').value = '';
+  updatePreview('');
+}
+
+function removeBatchItem(idx) {
+  batchItems.splice(idx, 1);
+  renderBatchList();
+}
+
+function renderBatchList() {
+  const list = document.getElementById('batchList');
+  const countEl = document.getElementById('batchCount');
+  countEl.textContent = batchItems.length;
+  document.getElementById('btnSubmitBatch').disabled = batchItems.length === 0;
+
+  if (batchItems.length === 0) { list.innerHTML = '<div class="text-muted" style="font-size:.8rem">No items yet.</div>'; return; }
+
+  list.innerHTML = batchItems.map((item, i) => `
+    <div class="batch-item d-flex justify-content-between align-items-start gap-2">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;color:#94a3b8;margin-bottom:.2rem">
+          📅 ${item.scheduled_at.replace('T',' ')} &bull; ${item.timezone} &bull;
+          <span class="badge bg-secondary" style="font-size:.65rem">${{all:'All',active:'Active',game_id:'Game ID'}[item.target]||item.target}</span>
+        </div>
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.message.slice(0,120)}${item.message.length>120?'…':''}</div>
+      </div>
+      <button type="button" onclick="removeBatchItem(${i})"
+        style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;flex-shrink:0">×</button>
+    </div>
+  `).join('');
+}
+
+function clearBatch() {
+  batchItems = [];
+  renderBatchList();
+}
+
+async function submitBatch() {
+  if (batchItems.length === 0) return;
+  const btn = document.getElementById('btnSubmitBatch');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending…';
+
+  try {
+    const resp = await fetch('/broadcast/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(batchItems),
+    });
+    const data = await resp.json();
+    const resultEl = document.getElementById('batchResult');
+    resultEl.style.display = '';
+    if (data.errors && data.errors.length > 0) {
+      resultEl.innerHTML = `<div class="alert alert-warning alert-sm py-2 mb-0">
+        ✅ Scheduled <strong>${data.created}</strong> broadcast(s).
+        ⚠️ ${data.errors.length} error(s):<br>
+        <small>${data.errors.join('<br>')}</small></div>`;
+    } else {
+      resultEl.innerHTML = `<div class="alert alert-success alert-sm py-2 mb-0">
+        ✅ <strong>${data.created}</strong> broadcast(s) scheduled successfully!
+        <a href="#tab-queue" class="alert-link ms-2" id="goQueueLink">View Queue →</a></div>`;
+      document.getElementById('goQueueLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('tab-queue-btn').click();
+        document.getElementById('tab-queue-btn').scrollIntoView({behavior:'smooth'});
+      });
+    }
+    if (data.created > 0) {
+      batchItems = [];
+      renderBatchList();
+    }
+  } catch (err) {
+    document.getElementById('batchResult').innerHTML =
+      `<div class="alert alert-danger alert-sm py-2 mb-0">Network error: ${err}</div>`;
+    document.getElementById('batchResult').style.display = '';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit All Batch';
+}
+
+/* ── Form submit handler ───────────────────────────────────── */
+function onFormSubmit() {
+  const mode = document.querySelector('input[name="send_mode"]:checked').value;
+  const msg  = document.getElementById('msgInput').value.trim();
+  const img  = hasImage();
+
+  if (!msg && !img) { alert('Please enter a message or attach an image.'); return false; }
+  if (img && msg.length > 1024) {
+    alert('Caption cannot exceed 1024 characters when an image is attached.'); return false;
+  }
+
+  if (mode === 'batch') {
+    // In batch mode, form doesn't submit — user uses addToBatch()
+    alert('In Batch mode, use "+ Add to Batch" to queue items, then "Submit All Batch".');
+    return false;
+  }
+
+  if (mode === 'schedule') {
+    const dt = document.getElementById('scheduledAtInput').value;
+    const tz = document.getElementById('timezoneInput').value;
+    if (!dt) { alert('Please pick a schedule date and time.'); return false; }
+    // Populate hidden fields
+    document.getElementById('scheduledAtHidden').value = dt;
+    document.getElementById('timezoneHidden').value    = tz;
+    const tgt = document.querySelector('input[name="target"]:checked');
+    const lbl = tgt ? tgt.nextElementSibling.querySelector('.fw-bold').textContent : 'All users';
+    return confirm(`Schedule broadcast to: ${lbl}?\n\nAt: ${dt.replace('T',' ')} (${tz})\n\nMessage:\n${msg.slice(0,120)}${msg.length>120?'…':''}`);
+  }
+
+  // Send Now
+  const tgt = document.querySelector('input[name="target"]:checked');
+  const lbl = tgt ? tgt.nextElementSibling.querySelector('.fw-bold').textContent : 'All users';
+  return confirm(`Send broadcast to: ${lbl}?${img?' [+ image]':''}\n\nMessage:\n${msg.slice(0,100)}${msg.length>100?'…':''}`);
+}
+
+/* ── Tab deep-link (e.g. redirect after cancel/delete) ──────── */
+window.addEventListener('DOMContentLoaded', function() {
+  if (location.hash === '#tab-queue') {
+    const btn = document.getElementById('tab-queue-btn');
+    if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+  }
+  updateMode();
+  updatePreview('');
+  renderBatchList();
+});
 </script>
 {% endblock %}

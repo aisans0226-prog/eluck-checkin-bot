@@ -15,6 +15,7 @@ from utils.keyboard import (
     tasks_keyboard,
     task_detail_keyboard,
     back_to_menu_keyboard,
+    language_keyboard,
 )
 from utils.helpers import safe_edit_or_reply, rate_limited
 from utils.i18n import t
@@ -90,6 +91,17 @@ async def menu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TY
     elif data.startswith("task:complete:"):
         task_id = data.split(":", 2)[2]
         await _complete_task(update, context, task_id, lang)
+
+    elif data == "menu:language":
+        await safe_edit_or_reply(
+            update,
+            t("language_menu_header", lang),
+            reply_markup=language_keyboard(lang),
+        )
+
+    elif data.startswith("lang:set:"):
+        new_lang = data.split(":", 2)[2]
+        await _set_language(update, context, new_lang)
 
     else:
         logger.warning("Unhandled callback: %s", data)
@@ -211,5 +223,45 @@ async def _complete_task(
     except Exception as exc:
         db.rollback()
         logger.error("_complete_task error: %s", exc, exc_info=True)
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────────────────────
+# Language selection
+# ─────────────────────────────────────────────────────────────
+_VALID_LANGS = {"en", "pt", "zh", "es"}
+
+
+async def _set_language(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, new_lang: str
+) -> None:
+    """Save the chosen language to the user row and refresh the main menu."""
+    if new_lang not in _VALID_LANGS:
+        return
+
+    tg_user = update.effective_user
+    db = context.bot_data["db_session"]()
+    try:
+        user = db.query(User).filter(User.telegram_id == tg_user.id).first()
+        if not user:
+            await safe_edit_or_reply(update, t("start_first", "en"))
+            return
+
+        user.language = new_lang
+        db.commit()
+
+        # Confirm change, then show the main menu in the new language
+        confirmation = t("language_changed", new_lang)
+        welcome = t("welcome", new_lang)
+        await safe_edit_or_reply(
+            update,
+            f"{confirmation}\n\n{welcome}",
+            reply_markup=main_menu_keyboard(new_lang),
+        )
+
+    except Exception as exc:
+        db.rollback()
+        logger.error("_set_language error: %s", exc, exc_info=True)
     finally:
         db.close()

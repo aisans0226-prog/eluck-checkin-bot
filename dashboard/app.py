@@ -24,12 +24,16 @@ import io
 import json
 import logging
 import csv
-from datetime import date, timedelta, datetime
+import uuid
+import atexit
+from datetime import date, timedelta, datetime, timezone
 from functools import wraps
 
+import pytz
 import requests
 import pandas as pd
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import (
     Flask, render_template, redirect, url_for,
     request, session, flash, jsonify, Response,
@@ -48,6 +52,7 @@ from models.task_definition import TaskDefinition
 from models.bot_config import BotConfig, get_config, set_config, DEFAULT_CONFIGS, DEFAULT_LINK_CONFIGS
 from models.dashboard_user import DashboardUser
 from models.audit_log import AuditLog
+from models.scheduled_broadcast import ScheduledBroadcast
 
 load_dotenv()
 
@@ -98,6 +103,163 @@ def remove_session(_exc=None):
 
 def db_session():
     return _SessionLocal()
+
+
+# ─────────────────────────────────────────────────────────────
+# Broadcast scheduling — constants & helpers
+# ─────────────────────────────────────────────────────────────
+BROADCAST_IMAGE_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "data", "broadcast_images")
+)
+os.makedirs(BROADCAST_IMAGE_DIR, exist_ok=True)
+
+TIMEZONES = [
+    ("UTC",                  "UTC — Coordinated Universal"),
+    ("America/Mexico_City",  "UTC-6  Mexico City (CST/CDT)"),
+    ("America/New_York",     "UTC-5  New York (EST/EDT)"),
+    ("America/Chicago",      "UTC-6  Chicago (CST/CDT)"),
+    ("America/Denver",       "UTC-7  Denver (MST/MDT)"),
+    ("America/Los_Angeles",  "UTC-8  Los Angeles (PST/PDT)"),
+    ("America/Sao_Paulo",    "UTC-3  São Paulo (BRT)"),
+    ("Europe/London",        "UTC+0  London (GMT/BST)"),
+    ("Europe/Paris",         "UTC+1  Paris (CET/CEST)"),
+    ("Europe/Berlin",        "UTC+1  Berlin (CET/CEST)"),
+    ("Europe/Moscow",        "UTC+3  Moscow (MSK)"),
+    ("Africa/Cairo",         "UTC+2  Cairo (EET)"),
+    ("Asia/Dubai",           "UTC+4  Dubai (GST)"),
+    ("Asia/Kolkata",         "UTC+5:30 Mumbai / New Delhi (IST)"),
+    ("Asia/Dhaka",           "UTC+6  Dhaka (BST)"),
+    ("Asia/Bangkok",         "UTC+7  Bangkok (ICT)"),
+    ("Asia/Ho_Chi_Minh",     "UTC+7  Ho Chi Minh City (ICT)"),
+    ("Asia/Shanghai",        "UTC+8  Shanghai / Beijing (CST)"),
+    ("Asia/Singapore",       "UTC+8  Singapore (SGT)"),
+    ("Asia/Taipei",          "UTC+8  Taipei (CST)"),
+    ("Asia/Seoul",           "UTC+9  Seoul (KST)"),
+    ("Asia/Tokyo",           "UTC+9  Tokyo (JST)"),
+    ("Australia/Sydney",     "UTC+10/11 Sydney (AEST/AEDT)"),
+]
+
+
+def _send_broadcast_to_users(bc: "ScheduledBroadcast", users_list: list) -> tuple[int, int]:
+    """Send a broadcast (from DB model) to the given user list. Returns (sent, failed)."""
+    image_data, image_content_type = None, "image/jpeg"
+    if bc.image_filename:
+        img_path = os.path.join(BROADCAST_IMAGE_DIR, bc.image_filename)
+        if os.path.exists(img_path):
+            with open(img_path, "rb") as fh:
+                image_data = fh.read()
+            ext = bc.image_filename.rsplit(".", 1)[-1].lower()
+            image_content_type = {
+                "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                "png": "image/png", "gif": "image/gif", "webp": "image/webp",
+            }.get(ext, "image/jpeg")
+
+    sent = failed = 0
+    for u in users_list:
+        try:
+            if image_data:
+                caption = (
+                    f"📢 <b>Announcement</b>\n\n{bc.message_text}"
+                    if bc.message_text
+                    else "📢 <b>Announcement</b>"
+                )
+                resp = requests.post(
+                    f"{TELEGRAM_API}/sendPhoto",
+                    data={"chat_id": u.telegram_id, "caption": caption[:1024], "parse_mode": "HTML"},
+                    files={"photo": (bc.image_filename, image_data, image_content_type)},
+                    timeout=10,
+                )
+            else:
+                resp = requests.post(
+                    f"{TELEGRAM_API}/sendMessage",
+                    json={
+                        "chat_id": u.telegram_id,
+                        "text": f"📢 <b>Announcement</b>\n\n{bc.message_text}",
+                        "parse_mode": "HTML",
+                    },
+                    timeout=5,
+                )
+            if resp.ok:
+                sent += 1
+            else:
+                failed += 1
+        except Exception:
+            failed += 1
+    return sent, failed
+
+
+def _execute_scheduled_broadcast(bc_id: int) -> None:
+    """Worker called by APScheduler: send one pending scheduled broadcast."""
+    db = _SessionLocal()
+    try:
+        bc = db.query(ScheduledBroadcast).filter(ScheduledBroadcast.id == bc_id).first()
+        if not bc or bc.status != "pending":
+            return
+        bc.status = "sending"
+        db.commit()
+
+        week_ago = date.today() - timedelta(days=7)
+        if bc.target == "active":
+            users_list = db.query(User).filter(User.last_checkin >= week_ago).all()
+        elif bc.target == "game_id":
+            users_list = db.query(User).filter(User.game_id.isnot(None)).all()
+        else:
+            users_list = db.query(User).all()
+
+        sent, failed = _send_broadcast_to_users(bc, users_list)
+        bc.status = "sent"
+        bc.sent_count = sent
+        bc.failed_count = failed
+        bc.sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.commit()
+        logger.info("Scheduled broadcast %d sent: sent=%d failed=%d", bc_id, sent, failed)
+    except Exception as exc:
+        logger.error("Scheduled broadcast %d error: %s", bc_id, exc, exc_info=True)
+        try:
+            bc = db.query(ScheduledBroadcast).filter(ScheduledBroadcast.id == bc_id).first()
+            if bc:
+                bc.status = "failed"
+                bc.error_message = str(exc)
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+
+def _check_pending_broadcasts() -> None:
+    """APScheduler job: fire any broadcasts whose scheduled_at has passed."""
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    db = _SessionLocal()
+    try:
+        due = (
+            db.query(ScheduledBroadcast)
+            .filter(
+                ScheduledBroadcast.status == "pending",
+                ScheduledBroadcast.scheduled_at <= now_utc,
+            )
+            .all()
+        )
+        for bc in due:
+            _execute_scheduled_broadcast(bc.id)
+    except Exception as exc:
+        logger.error("Broadcast scheduler check error: %s", exc)
+    finally:
+        db.close()
+
+
+# Start the background scheduler (once per process)
+_broadcast_scheduler = BackgroundScheduler(timezone="UTC", daemon=True)
+_broadcast_scheduler.add_job(
+    _check_pending_broadcasts,
+    trigger="interval",
+    minutes=1,
+    id="check_scheduled_broadcasts",
+    max_instances=1,
+    coalesce=True,
+)
+_broadcast_scheduler.start()
+atexit.register(lambda: _broadcast_scheduler.shutdown(wait=False))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -767,12 +929,30 @@ def broadcast():
             active_7d   = db.query(User).filter(
                 User.last_checkin >= date.today() - timedelta(days=7)
             ).count()
-            return render_template("broadcast.html", total_users=total_users, active_7d=active_7d)
+            game_id_count = db.query(User).filter(User.game_id.isnot(None)).count()
+            schedules = (
+                db.query(ScheduledBroadcast)
+                .order_by(ScheduledBroadcast.scheduled_at.desc())
+                .limit(100)
+                .all()
+            )
+            pending_count = sum(1 for s in schedules if s.status == "pending")
+            return render_template(
+                "broadcast.html",
+                total_users=total_users,
+                active_7d=active_7d,
+                game_id_count=game_id_count,
+                schedules=schedules,
+                pending_count=pending_count,
+                timezones=TIMEZONES,
+            )
 
-        message_text = request.form.get("message", "").strip()
-        target       = request.form.get("target", "all")
+        # ── POST ─────────────────────────────────────────────
+        message_text     = request.form.get("message", "").strip()
+        target           = request.form.get("target", "all")
+        scheduled_at_str = request.form.get("scheduled_at", "").strip()
+        tz_name          = request.form.get("timezone", "UTC").strip()
 
-        # Read uploaded image (if any)
         image_file = request.files.get("image")
         image_data, image_filename, image_content_type = None, None, "image/jpeg"
         if image_file and image_file.filename:
@@ -784,6 +964,47 @@ def broadcast():
             flash("Message cannot be empty.", "danger")
             return redirect(url_for("broadcast"))
 
+        # ── Scheduled send ────────────────────────────────────
+        if scheduled_at_str:
+            try:
+                tz       = pytz.timezone(tz_name)
+                local_dt = datetime.strptime(scheduled_at_str, "%Y-%m-%dT%H:%M")
+                local_dt = tz.localize(local_dt)
+                utc_dt   = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+            except Exception as exc:
+                flash(f"Invalid scheduled time: {exc}", "danger")
+                return redirect(url_for("broadcast"))
+
+            if utc_dt <= datetime.now(timezone.utc).replace(tzinfo=None):
+                flash("Scheduled time must be in the future.", "danger")
+                return redirect(url_for("broadcast"))
+
+            saved_img = None
+            if image_data:
+                ext = (os.path.splitext(image_filename)[1] if image_filename else ".jpg").lower()
+                saved_img = f"{uuid.uuid4().hex}{ext}"
+                with open(os.path.join(BROADCAST_IMAGE_DIR, saved_img), "wb") as fh:
+                    fh.write(image_data)
+
+            bc = ScheduledBroadcast(
+                message_text=message_text,
+                target=target,
+                image_filename=saved_img,
+                scheduled_at=utc_dt,
+                timezone_name=tz_name,
+                status="pending",
+                created_by=session.get("username", ""),
+            )
+            db.add(bc)
+            db.commit()
+            log_action(
+                "schedule_broadcast", f"target:{target}",
+                f"scheduled_at={scheduled_at_str} tz={tz_name} msg={message_text[:80]!r}",
+            )
+            flash(f"✅ Broadcast scheduled for {scheduled_at_str} ({tz_name}).", "success")
+            return redirect(url_for("broadcast"))
+
+        # ── Immediate send ─────────────────────────────────────
         week_ago = date.today() - timedelta(days=7)
         if target == "active":
             users_list = db.query(User).filter(User.last_checkin >= week_ago).all()
@@ -809,7 +1030,7 @@ def broadcast():
                         json={"chat_id": u.telegram_id, "text": f"📢 <b>Announcement</b>\n\n{message_text}", "parse_mode": "HTML"},
                         timeout=5,
                     )
-                sent += 1 if resp.ok else 0
+                sent   += 1 if resp.ok else 0
                 failed += 0 if resp.ok else 1
             except Exception:
                 failed += 1
@@ -820,6 +1041,100 @@ def broadcast():
         return redirect(url_for("broadcast"))
     finally:
         db.close()
+
+
+@app.route("/broadcast/schedule/cancel/<int:bc_id>", methods=["POST"])
+@permission_required("broadcast")
+def broadcast_schedule_cancel(bc_id: int):
+    db = db_session()
+    try:
+        bc = db.query(ScheduledBroadcast).filter(ScheduledBroadcast.id == bc_id).first()
+        if bc and bc.status == "pending":
+            bc.status = "cancelled"
+            db.commit()
+            log_action("cancel_scheduled_broadcast", f"id:{bc_id}", f"msg={bc.message_text[:80]!r}")
+            flash(f"Scheduled broadcast #{bc_id} cancelled.", "success")
+        else:
+            flash("Broadcast not found or already processed.", "danger")
+    finally:
+        db.close()
+    return redirect(url_for("broadcast") + "#tab-queue")
+
+
+@app.route("/broadcast/schedule/delete/<int:bc_id>", methods=["POST"])
+@permission_required("broadcast")
+def broadcast_schedule_delete(bc_id: int):
+    db = db_session()
+    try:
+        bc = db.query(ScheduledBroadcast).filter(ScheduledBroadcast.id == bc_id).first()
+        if bc and bc.status != "pending":
+            if bc.image_filename:
+                img_path = os.path.join(BROADCAST_IMAGE_DIR, bc.image_filename)
+                if os.path.exists(img_path):
+                    os.remove(img_path)
+            db.delete(bc)
+            db.commit()
+            log_action("delete_scheduled_broadcast", f"id:{bc_id}", "")
+            flash(f"Broadcast #{bc_id} deleted.", "info")
+        else:
+            flash("Cannot delete a pending broadcast — cancel it first.", "danger")
+    finally:
+        db.close()
+    return redirect(url_for("broadcast") + "#tab-queue")
+
+
+@app.route("/broadcast/batch", methods=["POST"])
+@permission_required("broadcast")
+def broadcast_batch():
+    """Schedule multiple text-only broadcasts at once from a JSON payload."""
+    try:
+        items = request.get_json(force=True)
+        if not isinstance(items, list) or not items:
+            return jsonify({"error": "Expected a non-empty JSON array"}), 400
+
+        db = db_session()
+        created, errors = 0, []
+        try:
+            for idx, item in enumerate(items):
+                msg            = (item.get("message") or "").strip()
+                target         = item.get("target", "all")
+                sched_str      = (item.get("scheduled_at") or "").strip()
+                tz_name        = (item.get("timezone") or "UTC").strip()
+
+                if not msg:
+                    errors.append(f"Item {idx+1}: empty message")
+                    continue
+                try:
+                    tz       = pytz.timezone(tz_name)
+                    local_dt = datetime.strptime(sched_str, "%Y-%m-%dT%H:%M")
+                    utc_dt   = tz.localize(local_dt).astimezone(pytz.utc).replace(tzinfo=None)
+                except Exception as exc:
+                    errors.append(f"Item {idx+1}: invalid time — {exc}")
+                    continue
+
+                if utc_dt <= datetime.now(timezone.utc).replace(tzinfo=None):
+                    errors.append(f"Item {idx+1}: time must be in the future")
+                    continue
+
+                db.add(ScheduledBroadcast(
+                    message_text=msg,
+                    target=target,
+                    scheduled_at=utc_dt,
+                    timezone_name=tz_name,
+                    status="pending",
+                    created_by=session.get("username", ""),
+                ))
+                created += 1
+
+            db.commit()
+            log_action("batch_schedule_broadcast", f"count:{created}", f"errors={len(errors)}")
+        finally:
+            db.close()
+
+        return jsonify({"created": created, "errors": errors})
+    except Exception as exc:
+        logger.error("broadcast_batch error: %s", exc, exc_info=True)
+        return jsonify({"error": str(exc)}), 500
 
 
 # ─────────────────────────────────────────────────────────────

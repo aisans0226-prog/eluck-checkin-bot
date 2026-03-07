@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 # Supported language codes for the Telegram bot
-SUPPORTED_LANGS = ("en", "es")
+SUPPORTED_LANGS = ("en", "pt", "zh", "es")
 
 
 class User(Base):
@@ -36,7 +36,7 @@ class User(Base):
     # Reward points
     points: Mapped[int] = mapped_column(Integer, default=0)
 
-    # Preferred language ('en' or 'es')
+    # Preferred language ('en', 'pt', 'zh', 'es')
     language: Mapped[str] = mapped_column(String(8), default="en", nullable=False, server_default="en")
 
     # Referral — FK to self

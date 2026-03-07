@@ -38,9 +38,12 @@ class CheckinResult:
         self.milestone_reached = milestone_reached  # e.g. 7, 30, 100, 365
 
 
-def get_or_create_user(db: Session, telegram_id: int, username: str | None, first_name: str | None) -> User:
+def get_or_create_user(
+    db: Session, telegram_id: int, username: str | None, first_name: str | None
+) -> tuple["User", bool]:
     """
     Fetch existing user or create a new skeleton user.
+    Returns (user, is_new) — is_new is True only on first creation.
     Does NOT commit — caller is responsible.
     """
     user = db.query(User).filter(User.telegram_id == telegram_id).first()
@@ -53,11 +56,12 @@ def get_or_create_user(db: Session, telegram_id: int, username: str | None, firs
         db.add(user)
         db.flush()  # get the auto-generated id
         logger.info("New user created: %s", telegram_id)
+        return user, True
     else:
         # Keep username/name fresh
         user.username = username
         user.first_name = first_name
-    return user
+        return user, False
 
 
 def perform_checkin(db: Session, user: User) -> CheckinResult:

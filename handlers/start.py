@@ -37,17 +37,21 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     try:
         # ── Upsert user ───────────────────────────────────────
-        user = get_or_create_user(
+        user, is_new = get_or_create_user(
             db,
             telegram_id=tg_user.id,
             username=tg_user.username,
             first_name=tg_user.first_name,
         )
 
-        # ── Auto-detect & persist language ───────────────────
-        lang = detect_lang(tg_user.language_code)
-        if user.language != lang:
+        # ── Auto-detect & persist language (new users only) ───
+        # Returning users keep whatever language they have stored,
+        # including any manual selection made via the language picker.
+        if is_new:
+            lang = detect_lang(tg_user.language_code)
             user.language = lang
+        else:
+            lang = user.language or "en"
 
         # ── Handle referral payload ───────────────────────────
         referral_text = ""
