@@ -314,8 +314,9 @@
       </div>
 
       <!-- Image info badge -->
-      <div id="previewImageInfo" style="display:none" class="mt-2 px-2 py-1 rounded d-flex align-items-center gap-2"
-        style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
+      <div id="previewImageInfo"
+        class="mt-2 px-2 py-1 rounded d-flex align-items-center gap-2"
+        style="display:none;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
         <i class="bi bi-image text-purple" style="font-size:.8rem"></i>
         <span id="previewImageName" style="font-size:.72rem;color:#94a3b8"></span>
       </div>
@@ -444,7 +445,13 @@ function handleImageDrop(event) {
   event.preventDefault();
   document.getElementById('imageUploadArea').classList.remove('drag-over');
   const file = event.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) applyImageFile(file);
+  if (file && file.type.startsWith('image/')) {
+    // Assign the dropped file to the input so it is submitted with the form
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('imageInput').files = dt.files;
+    applyImageFile(file);
+  }
 }
 
 function applyImageFile(file) {
@@ -516,8 +523,16 @@ function insertTemplate(text) {
 function clearAll() {
   document.getElementById('msgInput').value = '';
   updatePreview('');
-  // Also remove image if any
-  if (hasImage()) removeImage({ stopPropagation: () => {} });
+  // Reset image upload area directly
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreviewWrap').style.display = 'none';
+  document.getElementById('imageUploadPlaceholder').style.display = '';
+  document.getElementById('imageUploadArea').classList.remove('has-image');
+  document.getElementById('previewImageWrap').style.display = 'none';
+  document.getElementById('previewImageInfo').style.display = 'none';
+  document.getElementById('captionLimitHint').style.display = 'none';
+  document.getElementById('captionWarning').style.display = 'none';
+  updateCharCount('', false);
 }
 
 /* ── Confirm before send ───────────────────────────── */
