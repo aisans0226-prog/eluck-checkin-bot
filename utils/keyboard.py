@@ -181,13 +181,15 @@ def confirm_keyboard(action: str, lang: str = "en") -> InlineKeyboardMarkup:
 def language_keyboard(lang: str = "en") -> InlineKeyboardMarkup:
     """
     Language selection keyboard.
-    Shows the three supported languages as buttons.
+    Shows all supported languages as buttons.
     The currently active language is marked with ✓.
     """
     labels = {
         "en": "🇺🇸 English",
         "pt": "🇧🇷 Português (Brasil)",
         "zh": "🇨🇳 中文",
+        "es": "🇪🇸 Español",
+        "mx": "🇲🇽 Español (México)",
     }
     rows = [
         [

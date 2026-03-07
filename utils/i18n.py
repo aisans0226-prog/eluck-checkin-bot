@@ -4,6 +4,8 @@
 #   en  — English
 #   pt  — Português (Brasil)
 #   zh  — 中文 (Chinese Simplified)
+#   es  — Español (legacy)
+#   mx  — Español (México)
 # Language can be changed via the in-bot language picker.
 # Auto-detected from tg_user.language_code on first /start.
 # ============================================================
@@ -524,16 +526,146 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
             "¡Haz check-in hoy para mantenerla!"
         ),
     },
+
+    # ─── SPANISH — México (🇲🇽 es-MX) ────────────────────────
+    "mx": {
+        # Welcome / start
+        "welcome": (
+            "🎰 <b>¡Bienvenido al Bot de Check-in de la Comunidad!</b>\n\n"
+            "Haz check-in todos los días para ganar recompensas y mantener tu racha 💎\n\n"
+            "¡Usa el menú de abajo para empezar!"
+        ),
+        "referral_bonus": (
+            "\n\n🎁 <b>¡Bono por referido!</b> Un amigo te invitó.\n"
+            "¡Ganaron <b>+{points} puntos</b>!"
+        ),
+        "new_referral_notify": (
+            "🎉 <b>¡Nuevo Referido!</b>\n\n"
+            "<b>{name}</b> se unió con tu enlace de referido.\n"
+            "💰 Ganaste <b>+{points} puntos</b>."
+        ),
+        # Check-in
+        "game_id_required": (
+            "🎮 <b>Se Necesita ID de Juego</b>\n\n"
+            "Por favor ingresa tu <b>ID de Juego</b> para activar el check-in.\n"
+            "<i>Ejemplo: <code>12345678</code></i>\n\n"
+            "⚠️ ¡Solo necesitas hacerlo una vez!"
+        ),
+        "invalid_game_id": (
+            "❌ <b>ID de Juego Inválido</b>\n\n"
+            "Ingresa un ID de Juego numérico válido (4–20 dígitos).\n"
+            "<i>Ejemplo: <code>12345678</code></i>"
+        ),
+        "already_checkedin": (
+            "⚠️ <b>Ya Hiciste Check-in</b>\n\n"
+            "¡Ya hiciste check-in hoy!\n"
+            "Vuelve mañana 😊\n\n"
+            "🔥 Racha Actual: <b>{streak} días</b>"
+        ),
+        "checkin_success_title": "✅ <b>¡Check-in Exitoso!</b>",
+        "game_id_registered": "\n✨ <i>¡ID de Juego registrado exitosamente!</i>",
+        "streak_line": "🔥 Racha: <b>{streak} {days}</b>  {bar}",
+        "total_checkins_line": "📅 Total check-ins: <b>{total}</b>",
+        "points_earned_line": "💰 Puntos ganados: <b>+{pts} pts</b>",
+        "milestone_bonus": (
+            "\n🎉 <b>¡Bono de Logro!</b> ¡Alcanzaste una "
+            "<b>racha de {streak} días!</b>\n"
+            "   💰 Bono: <b>+{bonus} pts</b>"
+        ),
+        "game_id_line": "🎮 ID de Juego: <code>{game_id}</code>",
+        "day": "día",
+        "days": "días",
+        # Profile
+        "profile_header": "👤 <b>PERFIL DE USUARIO</b>",
+        "telegram_label": "Telegram",
+        "game_id_label": "🎮 ID de Juego",
+        "game_id_notset": "<i>No configurado — haz Check-in para registrar</i>",
+        "streak_label": "🔥 Racha Actual",
+        "total_checkins_label": "📅 Total Check-ins",
+        "points_label": "💰 Puntos",
+        "referrals_label": "👥 Referidos",
+        "referral_points_label": "🎁 Puntos por Referidos",
+        "profile_not_found": "⚠️ Perfil no encontrado. Por favor envía /start primero.",
+        # Referral
+        "referral_header": "🔗 <b>Tu Enlace de Referido</b>",
+        "total_referrals_label": "👥 Total Referidos",
+        "points_earned_label": "💰 Puntos Ganados",
+        "referral_tip": (
+            "📌 <i>Comparte este enlace y gana "
+            "<b>{reward} puntos</b> por cada amigo que se una!</i>"
+        ),
+        # Leaderboard
+        "leaderboard_header": "🏆 <b>TOP USUARIOS DE CHECK-IN</b>",
+        "leaderboard_empty": "🏆 Sin datos aún. ¡Sé el primero en hacer check-in!",
+        # Tasks
+        "tasks_header": "🎯 <b>TAREAS</b>  ({done}/{total} completadas)",
+        "tasks_subtext": "¡Completa tareas para ganar puntos extra!",
+        "task_completed_badge": "✅ <b>COMPLETADA</b>",
+        "task_not_completed_badge": "🔲 <b>Sin completar</b>",
+        "task_reward_line": "💰 Recompensa: <b>+{reward} puntos</b>",
+        "task_status_line": "Estado: {status}",
+        "task_done_msg": (
+            "🎉 <b>¡Tarea Completada!</b>\n\n"
+            "✅ {name}\n"
+            "💰 ¡<b>+{pts} puntos</b> otorgados!\n\n"
+            "Tu nuevo total: <b>{total:,} puntos</b>"
+        ),
+        "task_already_done": "⚠️ Esta tarea ya fue completada.",
+        "task_requirements_not_met": (
+            "⚠️ <b>Requisitos no cumplidos.</b>\n\n"
+            "¡Primero completa los requisitos de la tarea!\n"
+            "<i>{desc}</i>"
+        ),
+        "task_not_found": "Tarea no encontrada.",
+        "start_first": "Por favor envía /start primero.",
+        # Language
+        "language_menu_header": (
+            "🌐 <b>Elige tu idioma</b>\n\n"
+            "Selecciona el idioma que quieres usar:"
+        ),
+        "btn_language": "🌐 Idioma",
+        "language_changed": "✅ Idioma cambiado a <b>Español (México) 🇲🇽</b>.",
+        # Keyboard buttons
+        "btn_profile": "👤 Mi Perfil",
+        "btn_checkin": "✅ Check-in Diario",
+        "btn_events": "🎟 Eventos",
+        "btn_games": "🎮 Explorar Juegos",
+        "btn_leaderboard": "🏆 Grandes Ganancias",
+        "btn_download": "📥 Descargar App",
+        "btn_play": "▶️ Jugar Ahora",
+        "btn_tasks": "🎯 Tareas",
+        "btn_referral": "🔗 Mi Referido",
+        "btn_home": "🏠 Menú Principal",
+        "btn_checkin_now": "✅ Check-in Ahora",
+        "btn_referral_link": "🔗 Enlace Referido",
+        "btn_my_tasks": "🎯 Mis Tareas",
+        "btn_complete_tasks": "🎯 Completar Tareas",
+        "btn_share_refer": "🔗 Compartir y Referir",
+        "btn_back_tasks": "◀️ Volver a Tareas",
+        "btn_go_complete": "🚀 Ir y Completar",
+        "btn_mark_done": "✅ Marcar como Hecho",
+        "btn_yes": "✅ Sí",
+        "btn_no": "❌ No",
+        # General errors
+        "error_generic": "⚠️ Ocurrió un error. Por favor intenta de nuevo.",
+        # Scheduler messages
+        "streak_reminder": (
+            "⏰ <b>¡No rompas tu racha!</b>\n\n"
+            "🔥 ¡Tienes una racha de <b>{streak} días</b>!\n"
+            "¡Haz check-in hoy para mantenerla!"
+        ),
+    },
 }
 
 
 def detect_lang(language_code: str | None) -> str:
     """
     Detect bot language from Telegram user.language_code.
-    - Starts with 'pt'  (pt, pt-BR, pt-PT …)  → 'pt'
-    - Starts with 'zh'  (zh, zh-hans, zh-hant) → 'zh'
-    - Starts with 'es'  (es, es-MX, es-419 …)  → 'es'  (legacy)
-    - Everything else                           → 'en'
+    - Starts with 'pt'        (pt, pt-BR, pt-PT …)  → 'pt'
+    - Starts with 'zh'        (zh, zh-hans, zh-hant) → 'zh'
+    - Exactly 'es-mx' / 'es-419'                    → 'mx'  (Mexican Spanish)
+    - Starts with 'es'        (generic Spanish)      → 'es'  (legacy)
+    - Everything else                                → 'en'
     """
     if not language_code:
         return "en"
@@ -542,6 +674,8 @@ def detect_lang(language_code: str | None) -> str:
         return "pt"
     if lc.startswith("zh"):
         return "zh"
+    if lc in ("es-mx", "es_mx", "es-419"):
+        return "mx"
     if lc.startswith("es"):
         return "es"
     return "en"

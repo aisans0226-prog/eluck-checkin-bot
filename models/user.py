@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 # Supported language codes for the Telegram bot
-SUPPORTED_LANGS = ("en", "pt", "zh", "es")
+SUPPORTED_LANGS = ("en", "pt", "zh", "es", "mx")
 
 
 class User(Base):

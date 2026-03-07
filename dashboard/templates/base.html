@@ -11,6 +11,7 @@
       --sidebar-width: 240px;
       --primary: #6f42c1;
       --accent:  #fd7e14;
+      --topbar-h: 52px;
     }
     body { background: #0f0f14; color: #e2e8f0; font-size: 0.92rem; }
 
@@ -20,7 +21,8 @@
       width: var(--sidebar-width);
       background: linear-gradient(180deg, #1a1a2e 0%, #12122a 100%);
       border-right: 1px solid #2a2a4a;
-      z-index: 1000; display: flex; flex-direction: column;
+      z-index: 1050; display: flex; flex-direction: column;
+      transition: transform .25s ease;
     }
     #sidebar .brand {
       padding: 1.25rem 1rem 1rem;
@@ -55,16 +57,37 @@
       border-top: 1px solid #2a2a4a; font-size: 0.75rem; color: #475569;
     }
 
+    /* ── Sidebar overlay (mobile) ────────────────────────── */
+    #sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1040;
+    }
+    #sidebar-overlay.show { display: block; }
+
     /* ── Main content ────────────────────────────────────── */
     #main { margin-left: var(--sidebar-width); min-height: 100vh; }
     #topbar {
       position: sticky; top: 0; z-index: 900;
-      background: rgba(15,15,20,.85);
+      background: rgba(15,15,20,.92);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid #1e1e3a;
-      padding: .625rem 1.5rem;
+      padding: .625rem 1.25rem;
+      min-height: var(--topbar-h);
     }
     .page-content { padding: 1.5rem; }
+
+    /* ── Hamburger (hidden on desktop) ──────────────────── */
+    #sidebar-toggle {
+      display: none;
+      background: transparent; border: 1px solid #2a2a4a;
+      color: #94a3b8; border-radius: 6px;
+      padding: 4px 8px; cursor: pointer;
+      font-size: 1.1rem; line-height: 1;
+      transition: all .15s;
+    }
+    #sidebar-toggle:hover { border-color: #6f42c1; color: #fff; }
 
     /* ── Cards ───────────────────────────────────────────── */
     .stat-card {
@@ -87,6 +110,7 @@
     .table th { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; border-bottom-color: #2a2a4a; }
     .table td { font-size: .85rem; vertical-align: middle; border-bottom-color: #1e1e3a; }
     .table tr:hover td { background: rgba(111,66,193,.07); }
+    .table-responsive { -webkit-overflow-scrolling: touch; }
 
     /* ── Glass panels ────────────────────────────────────── */
     .glass { background: #16162a; border: 1px solid #2a2a4a; border-radius: 12px; }
@@ -122,8 +146,9 @@
     /* ── Language switcher ───────────────────────────────── */
     .lang-btn {
       background: transparent; border: 1px solid #2a2a4a;
-      color: #94a3b8; border-radius: 6px; padding: 2px 8px;
+      color: #94a3b8; border-radius: 6px; padding: 2px 7px;
       font-size: .72rem; cursor: pointer; transition: all .15s;
+      white-space: nowrap;
     }
     .lang-btn:hover, .lang-btn.active {
       background: rgba(111,66,193,.3); border-color: #6f42c1; color: #fff;
@@ -135,10 +160,82 @@
       border-radius: 6px; padding: 2px 6px; font-size: .72rem; cursor: pointer;
     }
     #tz-select:focus { outline: none; border-color: #6f42c1; }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE — Tablet (≤ 991px)
+    ══════════════════════════════════════════════════════ */
+    @media (max-width: 991px) {
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      #sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0,0,0,.5);
+      }
+      #main {
+        margin-left: 0;
+      }
+      #sidebar-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .page-content { padding: 1rem; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE — Mobile (≤ 575px)
+    ══════════════════════════════════════════════════════ */
+    @media (max-width: 575px) {
+      /* Topbar compact */
+      #topbar { padding: .5rem .75rem; }
+      #topbar .bot-online-badge { display: none; }
+
+      /* Language switcher scrollable row */
+      #lang-switcher {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px !important;
+        padding-bottom: 2px;
+        max-width: 160px;
+      }
+      #lang-switcher::-webkit-scrollbar { display: none; }
+      .lang-btn { flex-shrink: 0; font-size: .68rem; padding: 2px 6px; }
+
+      /* Timezone clock — hide label, show only time */
+      #tz-select { max-width: 90px; }
+      #clock { font-size: .68rem; }
+
+      /* Stat cards full-width on tiny screens */
+      .stat-card .stat-value { font-size: 1.4rem; }
+
+      /* Page content minimal padding */
+      .page-content { padding: .75rem; }
+
+      /* Tables full-width scroll */
+      .glass { border-radius: 8px; }
+
+      /* Modals full-screen on mobile */
+      .modal-dialog { margin: .5rem; }
+      .modal-content { border-radius: 10px; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RESPONSIVE — Topbar right-side items
+    ══════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      .topbar-right { gap: .5rem !important; }
+      #tz-select { display: none; }
+      #clock { display: none; }
+    }
   </style>
   {% block head %}{% endblock %}
 </head>
 <body>
+<!-- ════════════════ SIDEBAR OVERLAY (mobile) ════════════════ -->
+<div id="sidebar-overlay"></div>
+
 <!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════ -->
 <nav id="sidebar">
   <div class="brand">
@@ -217,18 +314,23 @@
   <!-- Topbar -->
   <div id="topbar" class="d-flex align-items-center justify-content-between">
     <div class="d-flex align-items-center gap-2">
-      <span class="text-muted" style="font-size:.75rem">
+      <!-- Hamburger (mobile) -->
+      <button id="sidebar-toggle" aria-label="Toggle navigation">
+        <i class="bi bi-list"></i>
+      </button>
+      <span class="text-muted d-none d-sm-inline" style="font-size:.75rem">
         <i class="bi bi-chevron-right me-1"></i>
         {% block breadcrumb %}Dashboard{% endblock %}
       </span>
     </div>
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center topbar-right gap-2 gap-md-3">
 
       <!-- ── Language switcher ── -->
       <div class="d-flex gap-1" id="lang-switcher">
         <button class="lang-btn" data-lang="en">EN</button>
         <button class="lang-btn" data-lang="vi">VI</button>
         <button class="lang-btn" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="es">🇲🇽 ES</button>
       </div>
 
       <!-- ── Timezone clock ── -->
@@ -242,7 +344,7 @@
         <span id="clock" class="text-muted font-monospace" style="font-size:.75rem"></span>
       </div>
 
-      <span class="badge bg-success bg-opacity-25 text-success" style="font-size:.7rem">
+      <span class="badge bg-success bg-opacity-25 text-success bot-online-badge" style="font-size:.7rem">
         <i class="bi bi-circle-fill me-1" style="font-size:.4rem"></i>
         <span data-i18n="bot_online">Bot Online</span>
       </span>
@@ -250,7 +352,7 @@
   </div>
 
   <!-- Flash messages -->
-  <div class="px-4 pt-3">
+  <div class="px-3 px-md-4 pt-3">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
         <div class="alert alert-{{ 'danger' if cat == 'danger' else ('warning' if cat == 'warning' else 'success') }} alert-dismissible fade show py-2" role="alert" style="font-size:.85rem">
@@ -271,12 +373,41 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
 // ════════════════════════════════════════════════════════════
+// SIDEBAR TOGGLE (mobile)
+// ════════════════════════════════════════════════════════════
+const sidebarToggle  = document.getElementById('sidebar-toggle');
+const sidebar        = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+sidebarToggle.addEventListener('click', () => {
+  sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+sidebarOverlay.addEventListener('click', closeSidebar);
+
+// Close sidebar on nav-link click (mobile UX)
+sidebar.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => {
+    if (window.innerWidth < 992) closeSidebar();
+  });
+});
+
+// ════════════════════════════════════════════════════════════
 // TIMEZONE CLOCK
 // ════════════════════════════════════════════════════════════
 const clockEl   = document.getElementById('clock');
 const tzSelect  = document.getElementById('tz-select');
 
-// Restore last chosen timezone
 const savedTz = localStorage.getItem('dashboard_tz');
 if (savedTz) tzSelect.value = savedTz;
 
@@ -310,7 +441,7 @@ tick();
 setInterval(tick, 1000);
 
 // ════════════════════════════════════════════════════════════
-// DASHBOARD i18n  (EN / VI / ZH)
+// DASHBOARD i18n  (EN / VI / ZH / ES-México)
 // ════════════════════════════════════════════════════════════
 const DASHBOARD_TRANSLATIONS = {
   en: {
@@ -323,6 +454,7 @@ const DASHBOARD_TRANSLATIONS = {
     sec_config:         'Configuration',
     nav_tasks:          'Activities / Tasks',
     nav_rewards:        'Rewards Config',
+    nav_links:          'Links / Mini App',
     sec_comm:           'Communication',
     nav_broadcast:      'Broadcast',
     sec_admin:          'Admin',
@@ -342,6 +474,7 @@ const DASHBOARD_TRANSLATIONS = {
     sec_config:         'Cấu Hình',
     nav_tasks:          'Hoạt Động / Nhiệm Vụ',
     nav_rewards:        'Cấu Hình Thưởng',
+    nav_links:          'Liên Kết / Mini App',
     sec_comm:           'Truyền Thông',
     nav_broadcast:      'Phát Sóng',
     sec_admin:          'Quản Trị',
@@ -361,6 +494,7 @@ const DASHBOARD_TRANSLATIONS = {
     sec_config:         '配置',
     nav_tasks:          '活动 / 任务',
     nav_rewards:        '奖励配置',
+    nav_links:          '链接 / 小程序',
     sec_comm:           '通讯',
     nav_broadcast:      '广播',
     sec_admin:          '管理',
@@ -369,6 +503,26 @@ const DASHBOARD_TRANSLATIONS = {
     bot_online:         '机器人在线',
     role_super_admin:   '超级管理员',
     role_admin:         '管理员',
+  },
+  es: {
+    sec_overview:       'Resumen',
+    nav_dashboard:      'Panel de Control',
+    sec_users:          'Usuarios',
+    nav_all_users:      'Todos los Usuarios',
+    nav_active_users:   'Usuarios Activos',
+    nav_export_csv:     'Exportar CSV',
+    sec_config:         'Configuración',
+    nav_tasks:          'Actividades / Tareas',
+    nav_rewards:        'Config. Recompensas',
+    nav_links:          'Enlaces / Mini App',
+    sec_comm:           'Comunicación',
+    nav_broadcast:      'Difusión',
+    sec_admin:          'Administración',
+    nav_audit:          'Registro de Auditoría',
+    nav_admin_accounts: 'Cuentas de Admin',
+    bot_online:         'Bot en Línea',
+    role_super_admin:   'Super Administrador',
+    role_admin:         'Administrador',
   },
 };
 

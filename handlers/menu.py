@@ -230,7 +230,7 @@ async def _complete_task(
 # ─────────────────────────────────────────────────────────────
 # Language selection
 # ─────────────────────────────────────────────────────────────
-_VALID_LANGS = {"en", "pt", "zh", "es"}
+_VALID_LANGS = {"en", "pt", "zh", "es", "mx"}
 
 
 async def _set_language(
