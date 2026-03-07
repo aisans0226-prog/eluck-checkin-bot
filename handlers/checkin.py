@@ -46,7 +46,7 @@ async def checkin_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     db = context.bot_data["db_session"]()
 
     try:
-        user = get_or_create_user(db, tg_user.id, tg_user.username, tg_user.first_name)
+        user, _ = get_or_create_user(db, tg_user.id, tg_user.username, tg_user.first_name)
         db.commit()
 
         lang = user.language or "en"
