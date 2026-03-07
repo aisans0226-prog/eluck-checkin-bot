@@ -2,19 +2,18 @@
 set -e
 PROJECT=/opt/vpoker-checkin-bot
 VENV=$PROJECT/venv
-BOT=vpoker-checkin-bot
+BOT=vpoker-bot
 DASH=vpoker-dashboard
-echo "[1/5] git pull..."
+echo "[1/4] Pulling latest code..."
 cd $PROJECT && git pull origin master
-echo "[2/5] pip install..."
+echo "[2/4] Installing dependencies..."
 $VENV/bin/pip install -q --upgrade pip
 $VENV/bin/pip install -q -r $PROJECT/requirements.txt
-echo "[3/5] restart bot..."
+echo "[3/4] Restarting services..."
 systemctl restart $BOT
-echo "[4/5] restart dashboard..."
 systemctl restart $DASH
-echo "[5/5] checking status..."
 sleep 3
-systemctl is-active $BOT && echo "  bot: OK" || echo "  bot: FAILED"
-systemctl is-active $DASH && echo "  dashboard: OK" || echo "  dashboard: FAILED"
-echo "Update complete."
+echo "[4/4] Status..."
+systemctl is-active $BOT
+systemctl is-active $DASH
+echo "Done."
